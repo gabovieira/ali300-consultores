@@ -71,26 +71,26 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
   };
 
   return (
-    <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center w-16 h-16 bg-cyan-600 rounded-full mx-auto mb-4">
-          <UserPlus className="w-8 h-8 text-white" />
+    <div className="bg-gray-800 p-4 sm:p-8 rounded-lg shadow-lg w-full max-w-md mx-auto">
+      <div className="text-center mb-6 sm:mb-8">
+        <div className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-cyan-600 rounded-full mx-auto mb-3 sm:mb-4">
+          <UserPlus className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Crear Cuenta</h2>
-        <p className="text-gray-400">Regístrate para comenzar a gestionar tus requerimientos</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Crear Cuenta</h2>
+        <p className="text-sm sm:text-base text-gray-400">Regístrate para comenzar a gestionar tus requerimientos</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Nombre</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <UserCircle className="h-5 w-5 text-gray-500" />
+              <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <input
               type="text"
               placeholder="Tu nombre"
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
@@ -98,15 +98,15 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-500" />
+              <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <input
               type="email"
               placeholder="correo@ejemplo.com"
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -114,17 +114,16 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Nivel de Desarrollador</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Nivel de Desarrollador</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Code className="h-5 w-5 text-gray-500" />
+              <Code className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <select
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={developerLevel}
               onChange={(e) => {
                 setDeveloperLevel(e.target.value);
-                // Si no es trainee, desactivar adiestramiento
                 if (e.target.value !== 'trainee') {
                   setAdiestramiento(false);
                 }
@@ -139,15 +138,15 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Empresa Asignada</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Empresa Asignada</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Briefcase className="h-5 w-5 text-gray-500" />
+              <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <input
               type="text"
               placeholder="Nombre de la empresa"
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
             />
@@ -155,15 +154,15 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Área</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Área</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Briefcase className="h-5 w-5 text-gray-500" />
+              <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <input
               type="text"
               placeholder="Área o departamento"
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={area}
               onChange={(e) => setArea(e.target.value)}
             />
@@ -176,25 +175,25 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
               <input
                 type="checkbox"
                 id="adiestramiento"
-                className="mr-2 h-4 w-4 rounded bg-gray-700 border-gray-600"
+                className="mr-2 h-3 w-3 sm:h-4 sm:w-4 rounded bg-gray-700 border-gray-600"
                 checked={adiestramiento}
                 onChange={(e) => setAdiestramiento(e.target.checked)}
               />
-              <label htmlFor="adiestramiento" className="text-sm font-medium text-gray-400">
+              <label htmlFor="adiestramiento" className="text-xs sm:text-sm font-medium text-gray-400">
                 Horas de adiestramiento
               </label>
             </div>
             
             {adiestramiento && (
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Horas diarias de adiestramiento</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Horas diarias de adiestramiento</label>
                 <input
                   type="number"
                   min="0"
                   max="8"
                   step="0.5"
                   placeholder="Ej: 3.5"
-                  className="w-full bg-gray-700 pl-3 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+                  className="w-full bg-gray-700 pl-3 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
                   value={horasAdiestramiento}
                   onChange={(e) => setHorasAdiestramiento(e.target.value)}
                 />
@@ -204,15 +203,15 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Contraseña</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-gray-500" />
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <input
               type="password"
-              placeholder="Al menos 6 caracteres"
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              placeholder="********"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -220,15 +219,15 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">Confirmar Contraseña</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-400 mb-1">Confirmar Contraseña</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-gray-500" />
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
             </div>
             <input
               type="password"
-              placeholder="Repite tu contraseña"
-              className="w-full bg-gray-700 pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white"
+              placeholder="********"
+              className="w-full bg-gray-700 pl-9 sm:pl-10 pr-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-cyan-500 text-white text-sm sm:text-base"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
@@ -236,7 +235,7 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         </div>
 
         {(error || localError) && (
-          <div className="bg-red-900 text-white p-3 rounded-lg text-sm">
+          <div className="bg-red-900 text-white p-2 sm:p-3 rounded-lg text-xs sm:text-sm">
             {localError || error}
           </div>
         )}
@@ -244,20 +243,20 @@ const Register: React.FC<RegisterProps> = ({ onShowLogin }) => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-200"
+          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-2 px-4 rounded-lg flex items-center justify-center transition-colors duration-200 text-sm sm:text-base"
         >
           {loading ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : (
             <>
-              <UserPlus className="w-5 h-5 mr-2" />
-              Registrarse
+              <UserPlus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Crear Cuenta
             </>
           )}
         </button>
 
         <div className="text-center mt-4">
-          <p className="text-gray-400">
+          <p className="text-xs sm:text-sm text-gray-400">
             ¿Ya tienes una cuenta?{' '}
             <button
               type="button"

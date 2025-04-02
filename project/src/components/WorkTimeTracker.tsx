@@ -120,38 +120,40 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 shadow-md border border-gray-700">
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center">
-          <Clock className="w-5 h-5 text-cyan-400 mr-2" />
-          <h3 className="text-white font-medium">Control de Horas</h3>
+          <div className="bg-cyan-600/20 p-1.5 sm:p-2 rounded-lg mr-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+          </div>
+          <h3 className="text-white font-medium text-sm sm:text-base">Control de Horas</h3>
         </div>
-        <div className="text-sm text-gray-400">
+        <div className="text-xs sm:text-sm text-gray-400 bg-gray-700/50 px-2 py-1 rounded-lg">
           {selectedDate.toLocaleDateString()}
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Horas de Trabajo */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-gray-700/30 p-2 sm:p-3 rounded-lg">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
             <div className="flex items-center gap-1">
-              <Briefcase className="text-cyan-400 w-4 h-4" />
-              <h4 className="text-white text-sm font-medium">Horas de Trabajo</h4>
+              <Briefcase className="text-cyan-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <h4 className="text-white text-xs sm:text-sm font-medium">Horas de Trabajo</h4>
             </div>
             <div className="text-right">
-              <span className="text-cyan-400 font-semibold">{totalHours.toFixed(1)}</span>
-              <span className="text-gray-400 text-sm"> / {workHours.toFixed(1)}</span>
+              <span className="text-cyan-400 font-semibold text-xs sm:text-sm">{totalHours.toFixed(1)}</span>
+              <span className="text-gray-400 text-xs sm:text-sm"> / {workHours.toFixed(1)}</span>
             </div>
           </div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 sm:h-2 bg-gray-700 rounded-full overflow-hidden">
             <div 
               className="h-full bg-cyan-500 rounded-full"
               style={{ width: `${Math.min((totalHours / workHours) * 100, 100)}%` }}
             ></div>
           </div>
           {remainingWorkHours > 0 && (
-            <div className="text-sm text-cyan-300 mt-1">
+            <div className="text-xs sm:text-sm text-cyan-300 mt-1">
               Faltan {remainingWorkHours.toFixed(1)} horas para completar la jornada laboral
             </div>
           )}
@@ -159,26 +161,26 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
 
         {/* Horas de Adiestramiento */}
         {hasTrainingProgram && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-gray-700/30 p-2 sm:p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
               <div className="flex items-center gap-1">
-                <BookOpen className="text-purple-400 w-4 h-4" />
-                <h4 className="text-white text-sm font-medium">Horas de Adiestramiento</h4>
+                <BookOpen className="text-purple-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <h4 className="text-white text-xs sm:text-sm font-medium">Horas de Adiestramiento</h4>
               </div>
               <div className="text-right">
-                <span className="text-purple-400 font-semibold">
+                <span className="text-purple-400 font-semibold text-xs sm:text-sm">
                   {trainingHours ? trainingHours.hours.toFixed(1) : '0.0'}
                 </span>
-                <span className="text-gray-400 text-sm"> / {dailyTrainingHours.toFixed(1)}</span>
+                <span className="text-gray-400 text-xs sm:text-sm"> / {dailyTrainingHours.toFixed(1)}</span>
               </div>
             </div>
-            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-1.5 sm:h-2 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-purple-500 rounded-full"
                 style={{ width: `${trainingHours ? Math.min((trainingHours.hours / dailyTrainingHours) * 100, 100) : 0}%` }}
               ></div>
             </div>
-            <div className="text-sm text-purple-300 mt-1">
+            <div className="text-xs sm:text-sm text-purple-300 mt-1">
               {trainingHours ? (
                 <span className="flex items-center gap-1">
                   <Check className="text-green-400 w-3 h-3" />
@@ -193,90 +195,84 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
           </div>
         )}
 
-        {/* Tareas Completadas Hoy */}
-        <div>
-          <div className="flex items-center justify-between mt-4 mb-2">
-            <div className="flex items-center">
-              <Check className="text-cyan-400 w-4 h-4 mr-1" />
-              <h4 className="text-white text-sm font-medium">Tareas Completadas Hoy</h4>
+        {/* Tareas Completadas */}
+        <div className="bg-gray-700/30 p-2 sm:p-3 rounded-lg">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <div className="flex items-center gap-1">
+              <Check className="text-cyan-400 w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <h4 className="text-white text-xs sm:text-sm font-medium truncate">
+                Tareas Completadas ({completedTasks.length})
+              </h4>
             </div>
             {completedTasks.length > 0 && (
-              <div className="text-sm text-gray-400">
-                {currentTaskIndex + 1} de {completedTasks.length}
+              <div className="flex items-center gap-1 sm:gap-2">
+                <button
+                  onClick={goToPreviousTask}
+                  disabled={currentTaskIndex === 0}
+                  className={`p-1 rounded-full ${
+                    currentTaskIndex === 0
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <span className="text-gray-400 text-xs sm:text-sm">
+                  {currentTaskIndex + 1} / {completedTasks.length}
+                </span>
+                <button
+                  onClick={goToNextTask}
+                  disabled={currentTaskIndex === completedTasks.length - 1}
+                  className={`p-1 rounded-full ${
+                    currentTaskIndex === completedTasks.length - 1
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
               </div>
             )}
           </div>
 
-          {completedTasks.length === 0 ? (
-            <div className="text-sm text-gray-400 p-2 bg-gray-750 rounded-md border border-gray-700">
-              No hay tareas completadas para esta fecha
+          {visibleTasks.length > 0 ? (
+            <div className="space-y-2">
+              {visibleTasks.map(task => {
+                const requirement = requirements.find(r => r.id === task.requirementId);
+                return (
+                  <div key={task.id} className="bg-gray-700/70 rounded-lg p-2 sm:p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-white text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 truncate">
+                          {task.description}
+                        </h5>
+                        <p className="text-gray-400 text-xs truncate">
+                          {requirement?.tipo}: {requirement?.name}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-cyan-400 text-xs sm:text-sm font-medium">
+                          {task.completionDetails?.timeSpent || '0'} horas
+                        </div>
+                        {trainingHours && (
+                          <div className="text-purple-400 text-xs">
+                            +{trainingHours.hoursPerTask.toFixed(1)}h adiestramiento
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {task.completionDetails?.description && (
+                      <p className="text-gray-300 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-2">
+                        {task.completionDetails.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="relative">
-              <div className="space-y-2">
-                {visibleTasks.map((task) => {
-                  const requirement = requirements.find(r => r.id === task.requirementId);
-                  const workTimeSpent = task.completionDetails?.timeSpent ? parseFloat(task.completionDetails.timeSpent) : 0;
-                  
-                  return (
-                    <div key={task.id} className="p-3 bg-gray-750 rounded-md border border-gray-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-600 text-white">
-                          {requirement?.tipo || 'REQ'}
-                        </span>
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-900 text-green-200">
-                          Completada
-                        </span>
-                        <span className="text-sm font-medium text-white">{task.description}</span>
-                      </div>
-                      <div className="flex justify-between items-center mt-1">
-                        <div className="text-xs text-gray-400">
-                          se hizo {task.completionDetails?.description}
-                        </div>
-                        <div className="text-cyan-400 font-semibold text-sm">
-                          {workTimeSpent.toFixed(1)} horas
-                        </div>
-                      </div>
-                      
-                      {isTrainee && trainingHours && trainingHours.hoursPerTask > 0 && (
-                        <div className="mt-2 p-2 bg-purple-900 bg-opacity-20 rounded border border-purple-800">
-                          <div className="flex justify-between items-center">
-                            <div className="text-xs text-purple-300 flex items-center">
-                              <BookOpen className="w-3 h-3 mr-1" />
-                              Adiestramiento asociado
-                            </div>
-                            <div className="text-purple-400 font-semibold text-sm">
-                              {trainingHours.hoursPerTask.toFixed(1)} horas
-                            </div>
-                          </div>
-                          <div className="text-xs text-purple-300 mt-1">
-                            Se recibió adiestramiento para realizar la tarea "{task.description}" del requerimiento {requirement?.tipo || 'REQ'}: {requirement?.name || ''} ({task.completionDetails?.description || ''})
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {completedTasks.length > 1 && (
-                <div className="flex justify-between mt-2">
-                  <button 
-                    onClick={goToPreviousTask}
-                    disabled={currentTaskIndex === 0}
-                    className={`p-1 rounded-full hover:bg-gray-700 ${currentTaskIndex === 0 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={goToNextTask}
-                    disabled={currentTaskIndex === completedTasks.length - 1}
-                    className={`p-1 rounded-full hover:bg-gray-700 ${currentTaskIndex === completedTasks.length - 1 ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
+            <div className="text-center py-3 sm:py-4 bg-gray-700/50 rounded-lg">
+              <p className="text-gray-400 text-xs sm:text-sm">No hay tareas completadas para esta fecha</p>
             </div>
           )}
         </div>

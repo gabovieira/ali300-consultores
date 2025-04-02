@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
@@ -87,6 +87,24 @@ const FERIADOS_BANCARIOS = [
 const Calendar: React.FC<CalendarProps> = ({ onSelectDate }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showLegend, setShowLegend] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detectar si es dispositivo móvil
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    // Comprobar al inicio
+    checkIfMobile();
+    
+    // Escuchar cambios de tamaño de ventana
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
   
   // Nombres de los meses y días de la semana
   const months = [
@@ -95,6 +113,7 @@ const Calendar: React.FC<CalendarProps> = ({ onSelectDate }) => {
   ];
   
   const weekdays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const shortWeekdays = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
   
   // Función para obtener el número de días en un mes
   const getDaysInMonth = (year: number, month: number) => {
@@ -220,40 +239,58 @@ const Calendar: React.FC<CalendarProps> = ({ onSelectDate }) => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 shadow-lg">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div className="flex items-center">
-          <CalendarIcon className="w-5 h-5 text-cyan-400 mr-2" />
-          <h3 className="text-white font-medium">Calendario Laboral</h3>
+          <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 mr-1 sm:mr-2" />
+          <h3 className="text-white font-medium text-sm sm:text-base">Calendario Laboral</h3>
         </div>
         <div className="flex items-center">
           <button 
             className="p-1 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white"
             onClick={previousMonth}
+            aria-label="Mes anterior"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <span className="mx-2 text-white font-medium">
+          <span className="mx-1.5 sm:mx-2 text-white font-medium text-xs sm:text-sm whitespace-nowrap">
             {months[currentDate.getMonth()]} {currentDate.getFullYear()}
           </span>
           <button 
             className="p-1 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white"
             onClick={nextMonth}
+            aria-label="Mes siguiente"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+          <button
+            className="ml-1 p-1 text-gray-400 hover:text-white rounded-full hover:bg-gray-700 md:hidden"
+            onClick={() => setShowLegend(!showLegend)}
+            aria-label="Mostrar leyenda"
+          >
+            <Info className="w-4 h-4" />
           </button>
         </div>
       </div>
       
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {weekdays.map(day => (
-          <div key={day} className="text-center text-xs font-medium text-gray-400 py-1">
-            {day}
-          </div>
-        ))}
+      <div className="grid grid-cols-7 gap-1 mb-1 sm:mb-2">
+        {/* Usar nombres cortos de días de la semana en móviles */}
+        {isMobile ? (
+          shortWeekdays.map(day => (
+            <div key={day} className="text-center text-xs font-medium text-gray-400 py-0.5 sm:py-1">
+              {day}
+            </div>
+          ))
+        ) : (
+          weekdays.map(day => (
+            <div key={day} className="text-center text-xs font-medium text-gray-400 py-0.5 sm:py-1">
+              {day}
+            </div>
+          ))
+        )}
       </div>
       
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {generateCalendarGrid().map((cell, index) => {
           const isSelectedDate = 
             cell.date.getDate() === selectedDate.getDate() &&
@@ -272,7 +309,7 @@ const Calendar: React.FC<CalendarProps> = ({ onSelectDate }) => {
             <button
               key={index}
               className={`
-                h-9 w-full flex items-center justify-center rounded-lg text-sm
+                h-7 sm:h-9 w-full flex items-center justify-center rounded text-xs sm:text-sm
                 ${!cell.currentMonth ? 'text-gray-600' : 
                   isFeriadoNacionalDay ? 'text-red-400' :
                   isFeriadoBancarioDay ? 'text-orange-400' :
@@ -299,22 +336,23 @@ const Calendar: React.FC<CalendarProps> = ({ onSelectDate }) => {
         })}
       </div>
 
-      <div className="mt-3 flex justify-end">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
+      {/* Leyenda visible solo en desktop o cuando se presiona el botón en móviles */}
+      <div className={`mt-2 sm:mt-3 ${showLegend || !isMobile ? 'block' : 'hidden'}`}>
+        <div className="flex flex-wrap justify-center md:justify-end gap-x-2 gap-y-1 text-xs text-gray-400">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-cyan-600 rounded-full mr-1"></div>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-cyan-600 rounded-full mr-1"></div>
             <span>Hoy</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 border border-red-700 rounded-full mr-1"></div>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 border border-red-700 rounded-full mr-1"></div>
             <span>Feriado nacional</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 border border-orange-700 rounded-full mr-1"></div>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 border border-orange-700 rounded-full mr-1"></div>
             <span>Feriado bancario</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 border border-gray-600 rounded-full mr-1"></div>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 border border-gray-600 rounded-full mr-1"></div>
             <span>Fin de semana</span>
           </div>
         </div>

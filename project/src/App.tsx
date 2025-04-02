@@ -491,104 +491,112 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} p-8`}>
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} p-4 sm:p-8`}>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold">
               {activeView === 'dashboard' ? 'Control de Horas' : 
                activeView === 'all' ? 'Todas las Tareas' : 
                activeView === 'pending' ? 'Tareas Pendientes' : 'Tareas Completadas'}
             </h1>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-700 shadow-md">
-                <div className="w-6 h-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 bg-gray-800 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-gray-700 shadow-md w-full sm:w-auto">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
                   <span className="text-white font-bold text-xs">
                     {currentUser?.displayName?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
-                <span className="text-white text-sm font-medium">
-                  {currentUser?.displayName} - {currentUser?.userData?.company || ''}
-                </span>
-                <span className="text-cyan-400 text-xs font-semibold px-2 py-0.5 bg-gray-700 rounded-full">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0 flex-1">
+                  <span className="text-white text-xs sm:text-sm font-medium truncate">
+                    {currentUser?.displayName}
+                  </span>
+                  <span className="text-gray-400 text-xs hidden sm:inline">•</span>
+                  <span className="text-gray-400 text-xs truncate">
+                    {currentUser?.userData?.company || ''}
+                  </span>
+                </div>
+                <span className="text-cyan-400 text-xs font-semibold px-1.5 sm:px-2 py-0.5 bg-gray-700 rounded-full ml-auto flex-shrink-0">
                   {currentUser?.userData?.developerLevel || 'junior'}
                 </span>
-                {currentUser?.userData?.developerLevel === 'trainee' && currentUser?.userData?.adiestramiento && (
-                  <div className="flex items-center gap-2 ml-2">
-                    <div className="w-5 h-5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-md flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                    </div>
-                    <div className="flex gap-1 items-center">
-                      <span className="text-purple-300 text-xs font-semibold">{currentUser.userData.horasAdiestramiento}h</span>
-                      <span className="text-gray-400 text-xs">|</span>
-                      <span className="text-cyan-300 text-xs font-semibold">{8 - (currentUser.userData.horasAdiestramiento || 0)}h</span>
-                    </div>
-                  </div>
-                )}
               </div>
+              {currentUser?.userData?.developerLevel === 'trainee' && currentUser?.userData?.adiestramiento && (
+                <div className="flex items-center gap-1 bg-gray-800 px-2 sm:px-3 py-1 rounded-xl border border-gray-700 shadow-md">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-md flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <div className="flex gap-1 items-center flex-shrink-0">
+                    <span className="text-purple-300 text-xs font-semibold">{currentUser.userData.horasAdiestramiento}h</span>
+                    <span className="text-gray-400 text-xs">|</span>
+                    <span className="text-cyan-300 text-xs font-semibold">{8 - (currentUser.userData.horasAdiestramiento || 0)}h</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Dashboard View */}
           {activeView === 'dashboard' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Calendar and Work Time Tracker */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
+              <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 sm:gap-4">
+                <div className="order-2 lg:order-1 mb-3 lg:mb-0">
                   <Calendar onSelectDate={setSelectedDate} />
                 </div>
-                <WorkTimeTracker
-                  selectedDate={selectedDate}
-                  tasks={tasks}
-                  requirements={requirements}
-                />
+                <div className="order-1 lg:order-2 mb-3 lg:mb-0">
+                  <WorkTimeTracker
+                    selectedDate={selectedDate}
+                    tasks={tasks}
+                    requirements={requirements}
+                  />
+                </div>
               </div>
               
               {/* Task Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Tasa de Completado</span>
-                    <div className="text-cyan-400 text-2xl font-bold">{completionRate}%</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+                <div className="bg-gray-800 p-3 sm:p-4 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-gray-400 text-xs sm:text-sm">Tasa de Completado</span>
+                    <div className="text-cyan-400 text-xl sm:text-2xl font-bold">{completionRate}%</div>
                   </div>
-                  <div className="mt-2 bg-gray-700 h-2 rounded-full">
+                  <div className="mt-1 sm:mt-2 bg-gray-700 h-1.5 sm:h-2 rounded-full">
                     <div 
-                      className="bg-cyan-400 h-2 rounded-full transition-all duration-500"
+                      className="bg-cyan-400 h-full rounded-full transition-all duration-500"
                       style={{ width: `${completionRate}%` }}
                     ></div>
                   </div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <span className="text-gray-400">Completadas</span>
-                  <div className="text-green-400 text-2xl font-bold">{completedTasks}</div>
+                <div className="bg-gray-800 p-3 sm:p-4 rounded-lg">
+                  <span className="text-gray-400 text-xs sm:text-sm">Completadas</span>
+                  <div className="text-green-400 text-xl sm:text-2xl font-bold">{completedTasks}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <span className="text-gray-400">En Progreso</span>
-                  <div className="text-yellow-400 text-2xl font-bold">{inProgressTasks}</div>
+                <div className="bg-gray-800 p-3 sm:p-4 rounded-lg">
+                  <span className="text-gray-400 text-xs sm:text-sm">En Progreso</span>
+                  <div className="text-yellow-400 text-xl sm:text-2xl font-bold">{inProgressTasks}</div>
                 </div>
-                <div className="bg-gray-800 p-4 rounded-lg">
-                  <span className="text-gray-400">Pendientes</span>
-                  <div className="text-red-400 text-2xl font-bold">{pendingTasks}</div>
+                <div className="bg-gray-800 p-3 sm:p-4 rounded-lg">
+                  <span className="text-gray-400 text-xs sm:text-sm">Pendientes</span>
+                  <div className="text-red-400 text-xl sm:text-2xl font-bold">{pendingTasks}</div>
                 </div>
               </div>
 
               {/* Requirements List */}
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Requerimientos Recientes</h2>
+              <div className="bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <h2 className="text-base sm:text-lg font-semibold">Requerimientos Recientes</h2>
                   <button
                     onClick={() => setShowNewRequirementModal(true)}
-                    className="text-sm text-cyan-400 hover:underline"
+                    className="text-xs sm:text-sm text-cyan-400 hover:underline"
                   >
                     Ver todos
                   </button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1 sm:space-y-2">
                   {requirements.slice(0, 5).map((req) => (
                     <div
                       key={req.id}
-                      className="p-4 rounded-lg cursor-pointer bg-gray-750 hover:bg-gray-700"
+                      className="p-2 sm:p-4 rounded-lg cursor-pointer bg-gray-750 hover:bg-gray-700"
                       onClick={() => {
                         req.id && setSelectedRequirement(req.id);
                         setActiveView('all');
@@ -596,18 +604,18 @@ function App() {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium bg-gray-600 text-white`}>
+                          <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
+                            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-gray-600 text-white`}>
                               {req.tipo || 'REQ'}
                             </span>
-                            <div className="font-medium">{req.name}</div>
+                            <div className="font-medium text-sm sm:text-base">{req.name}</div>
                           </div>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-xs sm:text-sm text-gray-400">
                             Creado: {req.createdAt instanceof Date ? req.createdAt.toLocaleDateString() : 'Fecha desconocida'}
                           </div>
                         </div>
                         <div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
                             req.status === 'completed' ? 'bg-green-900 text-green-200' : 'bg-blue-900 text-blue-200'
                           }`}>
                             {req.status === 'completed' ? 'Completado' : 'Activo'}
