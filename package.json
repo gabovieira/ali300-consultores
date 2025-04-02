@@ -1,0 +1,10 @@
+{
+  "name": "proyecto-requerimientos-root",
+  "version": "1.0.0",
+  "description": "Wrapper para ejecutar la aplicación desde la raíz",
+  "scripts": {
+    "dev": "cd project && npm run dev",
+    "build": "cd project && npm run build",
+    "preview": "cd project && npm run preview"
+  }
+} 

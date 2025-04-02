@@ -1,0 +1,47 @@
+/* Estilos específicos para iconos */
+svg {
+  display: inline-block !important;
+  stroke-width: 2px;
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 1em;
+  height: 1em;
+  visibility: visible !important;
+}
+
+/* Colores específicos para iconos */
+.text-cyan-400 svg {
+  stroke: #34d399;
+}
+
+.text-white svg {
+  stroke: #ffffff;
+}
+
+/* Tamaños de los iconos */
+.w-3, .h-3 {
+  width: 0.75rem !important;
+  height: 0.75rem !important;
+}
+
+.w-4, .h-4 {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.w-5, .h-5 {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+.w-6, .h-6 {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+.w-8, .h-8 {
+  width: 2rem !important;
+  height: 2rem !important;
+} 

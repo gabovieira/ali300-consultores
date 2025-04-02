@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Información del Usuario</h5>
+                <p class="card-text">
+                    <strong>Nivel:</strong> {{ user.level|capitalize }}<br>
+                    <strong>Horas de Desarrollo:</strong> {{ user.development_hours }}<br>
+                    <strong>Horas de Adiestramiento:</strong> {{ user.training_hours }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Resumen de la Quincena</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Horas Desarrollo</th>
+                                <th>Horas Adiestramiento</th>
+                                <th>Descuentos</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day, data in days_data.items() %}
+                            <tr>
+                                <td>{{ day }}</td>
+                                <td>{{ data.development_hours }}</td>
+                                <td>{{ data.training_hours }}</td>
+                                <td>{{ data.discount_hours }}</td>
+                                <td>{{ data.development_hours + data.training_hours - data.discount_hours }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h2>Actividades Recientes</h2>
+        <ul class="list-group">
+            {% for activity in activities %}
+            <li class="list-group-item">
+                <strong>{{ activity.title }}</strong> ({{ activity.type }})<br>
+                {{ activity.description }}<br>
+                <small>Horas: {{ activity.hours_spent }} | Fecha: {{ activity.date.strftime('%Y-%m-%d') }}</small>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="col-md-6">
+        <h2>Descuentos Recientes</h2>
+        <ul class="list-group">
+            {% for discount in discounts %}
+            <li class="list-group-item">
+                <strong>{{ discount.reason }}</strong><br>
+                {{ discount.description }}<br>
+                <small>Horas perdidas: {{ discount.hours_deducted }} | Fecha: {{ discount.date.strftime('%Y-%m-%d') }}</small>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<a href="{{ url_for('main.new_activity') }}" class="btn btn-primary mt-3">Registrar Actividad</a>
+<a href="{{ url_for('main.new_discount') }}" class="btn btn-secondary mt-3">Registrar Descuento</a>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Actividades Recientes</h5>
+        <div id="carouselActivities" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                {% for day, data in days_data.items() %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    <h6>{{ day }}</h6>
+                    <ul class="list-group">
+                        {% for activity in data.activities %}
+                        <li class="list-group-item">
+                            <strong>{{ activity.type|upper }}:</strong> {{ activity.title }}<br>
+                            {{ activity.description }}<br>
+                            <small class="text-muted">{{ activity.hours_spent }} horas</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselActivities" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Anterior</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselActivities" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Siguiente</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

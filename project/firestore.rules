@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para usuarios autenticados
+    match /users/{userId} {
+      // Un usuario solo puede leer y escribir su propio documento
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Reglas para requerimientos
+    match /requirements/{docId} {
+      // Solo crear si el userId coincide con el usuario autenticado
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Solo leer, actualizar o eliminar si el userId del documento coincide con el usuario autenticado
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Reglas para tareas
+    match /tasks/{docId} {
+      // Función para validar la estructura de la tarea
+      function isValidTask() {
+        let task = request.resource.data;
+        return task.description is string &&
+               task.description.size() > 0 &&
+               task.status in ['pending', 'completed', 'in-progress'] &&
+               task.type in ['UI', 'validación', 'funcionalidad'] &&
+               task.priority in ['alta', 'media', 'baja'] &&
+               task.requirementId is string &&
+               task.requirementId.size() > 0;
+      }
+
+      // Permitir lectura de tareas a usuarios autenticados
+      allow read: if request.auth != null;
+      
+      // Permitir creación si el usuario está autenticado y los datos son válidos
+      allow create: if request.auth != null && isValidTask();
+      
+      // Permitir actualización si el usuario está autenticado y los datos son válidos
+      allow update: if request.auth != null && isValidTask();
+      
+      // Permitir eliminación si el usuario está autenticado
+      allow delete: if request.auth != null;
+    }
+  }
+} 
