@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ali300-consultores.netlify.app/sitemap.xml 
