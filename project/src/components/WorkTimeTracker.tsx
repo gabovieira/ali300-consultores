@@ -255,9 +255,17 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
               </div>
               <div className="text-right">
                 <span className="text-purple-400 font-semibold text-xs sm:text-sm">
-                  {trainingHours ? trainingHours.hours.toFixed(1) : '0.0'}
+                  {trainingHours ? 
+                    (dailyTrainingHours < 1 ? 
+                      `${Math.round(dailyTrainingHours * 60)}min` : 
+                      `${dailyTrainingHours.toFixed(1)}`) 
+                    : '0.0'}
                 </span>
-                <span className="text-gray-400 text-xs sm:text-sm"> / {dailyTrainingHours.toFixed(1)}</span>
+                <span className="text-gray-400 text-xs sm:text-sm"> / {
+                  dailyTrainingHours < 1 ? 
+                    `${Math.round(dailyTrainingHours * 60)}min` : 
+                    `${dailyTrainingHours.toFixed(1)}`
+                }</span>
               </div>
             </div>
             <div className="h-1.5 sm:h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -270,7 +278,11 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
               {trainingHours ? (
                 <span className="flex items-center gap-1">
                   <Check className="text-green-400 w-3 h-3" />
-                  Adiestramiento de {dailyTrainingHours} horas registrado automáticamente
+                  Adiestramiento de {
+                    dailyTrainingHours < 1 ? 
+                      `${Math.round(dailyTrainingHours * 60)} minutos` : 
+                      `${dailyTrainingHours.toFixed(1)} horas`
+                  } registrado automáticamente
                 </span>
               ) : (
                 allActivityTasks.length === 0 
@@ -418,58 +430,104 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                 <div className="space-y-2">
                   {visibleTasks.map(task => {
                     const requirement = requirements.find(r => r.id === task.requirementId);
-                    const taskTimeSpent = task.status === 'completed' 
-                      ? task.completionDetails?.timeSpent 
-                      : task.progress?.find(p => 
-                          new Date(p.date instanceof Timestamp 
-                            ? p.date.toDate() 
-                            : p.date).toDateString() === selectedDate.toDateString()
-                        )?.timeSpent || "0 horas";
                     
-                    // Extraer el número de horas del texto "X horas"
-                    const hoursMatch = taskTimeSpent ? taskTimeSpent.match(/(\d+(\.\d+)?)/): null;
-                    const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+                    // Ahora vamos a mostrar cada avance individualmente para la tarea visible
+                    const todaysProgressEntries = task.progress?.filter(entry => {
+                      const entryDate = entry.date instanceof Timestamp 
+                        ? entry.date.toDate() 
+                        : entry.date instanceof Date
+                          ? entry.date
+                          : new Date(entry.date);
+                      
+                      return entryDate.toDateString() === selectedDate.toDateString();
+                    }) || [];
                     
-                    // Calcular el tiempo de adiestramiento (10% del tiempo de la tarea)
-                    const adiestramientoHours = (hours * 0.1).toFixed(1);
-                    
-                    return (
-                      <div key={`training-${task.id}`} className="border-l-2 border-purple-500 pl-2">
-                        <p className="text-white font-medium">
-                          {requirement?.tipo}: {requirement?.name}
-                        </p>
-                        <p className="text-gray-400">
-                          Tarea: {task.description}
-                        </p>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-purple-300">
-                            Tiempo de actividad: {taskTimeSpent}
-                          </span>
-                          <span className="text-purple-300 font-medium">
-                            Adiestramiento: {adiestramientoHours} horas
-                          </span>
+                    // Si es tarea completada, usamos su información de completado
+                    if (task.status === 'completed' && task.completionDetails) {
+                      const timeSpent = task.completionDetails.timeSpent;
+                      const hoursPerActivity = dailyTrainingHours;
+                      
+                      // Formatear el tiempo de adiestramiento
+                      let adiestramientoDisplay = '';
+                      if (hoursPerActivity < 1) {
+                        const minutes = Math.round(hoursPerActivity * 60);
+                        adiestramientoDisplay = `${minutes} minutos`;
+                      } else {
+                        adiestramientoDisplay = `${hoursPerActivity.toFixed(1)} horas`;
+                      }
+                      
+                      return (
+                        <div key={`training-complete-${task.id}`} className="border-l-2 border-purple-500 pl-2">
+                          <p className="text-white font-medium">
+                            {requirement?.tipo}: {requirement?.name}
+                          </p>
+                          <p className="text-gray-400">
+                            Tarea: {task.description} (Completada)
+                          </p>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-purple-300">
+                              Tiempo registrado: {timeSpent}
+                            </span>
+                            <span className="text-purple-300 font-medium">
+                              Adiestramiento: {adiestramientoDisplay}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    } 
+                    // Si hay avances para esta tarea, mostramos cada uno por separado
+                    else if (todaysProgressEntries.length > 0) {
+                      return (
+                        <React.Fragment key={`training-progress-${task.id}`}>
+                          {todaysProgressEntries.map((progress, idx) => {
+                            const hoursPerActivity = dailyTrainingHours / todaysProgressEntries.length;
+                            
+                            // Formatear el tiempo de adiestramiento para cada avance
+                            let adiestramientoDisplay = '';
+                            if (hoursPerActivity < 1) {
+                              const minutes = Math.round(hoursPerActivity * 60);
+                              adiestramientoDisplay = `${minutes} minutos`;
+                            } else {
+                              adiestramientoDisplay = `${hoursPerActivity.toFixed(1)} horas`;
+                            }
+                            
+                            return (
+                              <div key={`training-progress-${task.id}-${idx}`} className="border-l-2 border-purple-500 pl-2">
+                                <p className="text-white font-medium">
+                                  {requirement?.tipo}: {requirement?.name}
+                                </p>
+                                <p className="text-gray-400">
+                                  Tarea: {task.description} (Avance {idx + 1})
+                                </p>
+                                <p className="text-gray-300 text-xs mt-1">
+                                  Detalle: {progress.description}
+                                </p>
+                                <div className="flex justify-between mt-1">
+                                  <span className="text-purple-300">
+                                    Tiempo registrado: {progress.timeSpent}
+                                  </span>
+                                  <span className="text-purple-300 font-medium">
+                                    Adiestramiento: {adiestramientoDisplay}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    }
+                    
+                    // Si no tiene ni completado ni avances para hoy, no mostramos nada
+                    return null;
                   })}
                   
                   {/* Total de adiestramiento */}
                   <div className="mt-3 pt-2 border-t border-gray-700 flex justify-between">
                     <span className="text-white">Total adiestramiento:</span>
                     <span className="text-white font-bold">
-                      {visibleTasks.reduce((total, task) => {
-                        const taskTimeSpent = task.status === 'completed' 
-                          ? task.completionDetails?.timeSpent 
-                          : task.progress?.find(p => 
-                              new Date(p.date instanceof Timestamp 
-                                ? p.date.toDate() 
-                                : p.date).toDateString() === selectedDate.toDateString()
-                            )?.timeSpent || "0 horas";
-                        
-                        const hoursMatch = taskTimeSpent ? taskTimeSpent.match(/(\d+(\.\d+)?)/): null;
-                        const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
-                        return total + (hours * 0.1);
-                      }, 0).toFixed(1)} horas
+                      {dailyTrainingHours < 1 
+                        ? `${Math.round(dailyTrainingHours * 60)} minutos` 
+                        : `${dailyTrainingHours.toFixed(1)} horas`}
                     </span>
                   </div>
                 </div>

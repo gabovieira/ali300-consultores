@@ -17,11 +17,11 @@ interface DataContextType {
   completeRequirement: (id: string, completionInfo?: { sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }) => Promise<void>;
   
   // Funciones para Tasks
-  addTask: (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
+  addTask: (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date) => Promise<string | null>;
   updateTaskStatus: (id: string, status: Task['status']) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
-  completeTask: (id: string, details: { description: string; timeSpent: string; sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }) => Promise<void>;
-  addTaskProgress: (id: string, progressDetails: { description: string; timeSpent: string }) => Promise<void>;
+  completeTask: (id: string, details: { description: string; timeSpent: string; sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }, customDate?: Date) => Promise<void>;
+  addTaskProgress: (id: string, progressDetails: { description: string; timeSpent: string }, customDate?: Date) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -261,12 +261,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Funciones para Tasks
-  const addTask = async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addTask = async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date) => {
     try {
-      const newId = await tasksService.create(data);
+      // Crear objeto con fecha personalizada si se proporciona
+      const taskData = {
+        ...data,
+        createdAt: customDate || new Date()
+      };
+
+      const newId = await tasksService.create(taskData);
       const newTask: Task = {
         id: newId,
-        ...data
+        ...data,
+        createdAt: taskData.createdAt
       };
       setTasks([...tasks, newTask]);
       return newId;
@@ -295,14 +302,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sentToQA?: boolean;
       deployedToProduction?: boolean;
       tools?: string[];
-    }
+    },
+    customDate?: Date
   ) => {
     setLoading(true);
     setError(null);
     try {
-      await tasksService.complete(id, {
+      await tasksService.completeTask(id, {
         ...details,
-        completedAt: new Date()
+        completedAt: customDate || new Date()
       });
       setTasks(prevTasks => prevTasks.map(task => 
         task.id === id ? { 
@@ -311,7 +319,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           completionDetails: {
             description: details.description,
             timeSpent: details.timeSpent,
-            completedAt: new Date(),
+            completedAt: customDate || new Date(),
             sentToQA: details.sentToQA || false,
             deployedToProduction: details.deployedToProduction || false,
             tools: details.tools || []
@@ -341,12 +349,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     progressDetails: {
       description: string;
       timeSpent: string;
-    }
+    },
+    customDate?: Date
   ) => {
     setLoading(true);
     setError(null);
     try {
-      await tasksService.addTaskProgress(id, progressDetails);
+      await tasksService.addTaskProgress(id, progressDetails, customDate);
       
       // Buscar la tarea en el estado local
       const taskIndex = tasks.findIndex(task => task.id === id);
@@ -359,7 +368,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Crear la nueva entrada de progreso
         const newProgress: ProgressEntry = {
-          date: new Date(),
+          date: customDate || new Date(),
           description: progressDetails.description,
           timeSpent: progressDetails.timeSpent,
           createdAt: new Date()

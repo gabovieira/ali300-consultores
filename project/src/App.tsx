@@ -36,14 +36,7 @@ import { WorkTimeTracker } from './components/WorkTimeTracker';
 import Icon from './components/Icon';
 import AuthScreen from './components/AuthScreen';
 import WelcomePage from './components/WelcomePage';
-import Calendar from './components/Calendar';
-import { 
-  ListTodo, 
-  AlertCircle, 
-  Briefcase, 
-  Calendar as CalendarIcon, 
-  Edit
-} from 'lucide-react';
+import CalendarComponent from './components/Calendar';
 
 function App() {
   const { currentUser, signOut, updateProfile } = useAuth();
@@ -81,7 +74,9 @@ function App() {
     timeSpent: '',
     sentToQA: false,
     deployedToProduction: false,
-    tools: [] as string[]
+    tools: [] as string[],
+    useCustomDate: false,
+    customDate: new Date().toISOString().split('T')[0]
   });
   const [activeView, setActiveView] = useState<'all' | 'pending' | 'completed' | 'dashboard'>('dashboard');
   const [showNewRequirementModal, setShowNewRequirementModal] = useState(false);
@@ -101,7 +96,9 @@ function App() {
     description: '',
     type: 'UI' as Task['type'],
     priority: 'media' as Task['priority'],
-    feedback: ''
+    feedback: '',
+    useCustomDate: false,
+    customDate: new Date().toISOString().split('T')[0]
   });
   const [profileData, setProfileData] = useState<{
     company: string;
@@ -136,7 +133,9 @@ function App() {
   const [selectedTaskForProgress, setSelectedTaskForProgress] = useState<string | null>(null);
   const [progressDetails, setProgressDetails] = useState({
     description: '',
-    timeSpent: ''
+    timeSpent: '',
+    useCustomDate: false,
+    customDate: new Date().toISOString().split('T')[0]
   });
   const [availableTools, setAvailableTools] = useState([
     'Forma (.fmb)', 'Package (.pks)', 'Package Body (.pkb)', 'Trigger (.trg)', 
@@ -174,11 +173,17 @@ function App() {
         name: newRequirement.name,
         tipo: newRequirement.tipo,
         tieneEstimacion: newRequirement.tieneEstimacion,
-        tiempoEstimado: newRequirement.tieneEstimacion ? newRequirement.tiempoEstimado : undefined
+        tiempoEstimado: newRequirement.tieneEstimacion ? newRequirement.tiempoEstimado : undefined,
+        status: 'active' as 'active' | 'completed',
+        userId: currentUser.uid
       };
       
-      // Si se usa fecha personalizada, convertirla a objeto Date
-      const customDate = newRequirement.useCustomDate ? new Date(newRequirement.customDate) : undefined;
+      // Si se usa fecha personalizada, convertirla a objeto Date asegurándose de usar la fecha local correcta
+      const customDate = newRequirement.useCustomDate ? (() => {
+        // Crear una fecha local correcta a partir de la fecha seleccionada
+        const [year, month, day] = newRequirement.customDate.split('-').map(Number);
+        return new Date(year, month - 1, day); // Restamos 1 al mes porque en JavaScript los meses van de 0 a 11
+      })() : undefined;
       
       const reqId = await addRequirement(reqData, customDate);
       
@@ -224,33 +229,46 @@ function App() {
     
     try {
       console.log('Datos de la tarea a crear:', {
-      description: newTask.description,
-      status: 'pending',
-      type: newTask.type,
-      priority: newTask.priority,
-      feedback: newTask.feedback,
-      requirementId: selectedRequirement
-      });
-      
-      await addTask({
         description: newTask.description,
         status: 'pending',
         type: newTask.type,
         priority: newTask.priority,
         feedback: newTask.feedback,
-        requirementId: selectedRequirement
+        requirementId: selectedRequirement,
+        useCustomDate: newTask.useCustomDate,
+        customDate: newTask.customDate
       });
+      
+      const taskData = {
+        description: newTask.description,
+        status: 'pending' as Task['status'],
+        type: newTask.type,
+        priority: newTask.priority,
+        feedback: newTask.feedback,
+        requirementId: selectedRequirement
+      };
+      
+      // Si se usa fecha personalizada, convertirla a objeto Date asegurándose de usar la fecha local correcta
+      const customDate = newTask.useCustomDate ? (() => {
+        // Crear una fecha local correcta a partir de la fecha seleccionada
+        const [year, month, day] = newTask.customDate.split('-').map(Number);
+        return new Date(year, month - 1, day); // Restamos 1 al mes porque en JavaScript los meses van de 0 a 11
+      })() : undefined;
+      
+      await addTask(taskData, customDate);
       
       console.log('Tarea creada exitosamente');
       
-    setNewTask({
-      description: '',
-      type: 'UI',
+      setNewTask({
+        description: '',
+        type: 'UI',
         priority: 'media',
-      feedback: ''
-    });
+        feedback: '',
+        useCustomDate: false,
+        customDate: new Date().toISOString().split('T')[0]
+      });
       
-    setShowNewTaskModal(false);
+      setShowNewTaskModal(false);
     } catch (error) {
       console.error('Error detallado al crear la tarea:', error);
       if (error instanceof Error) {
@@ -269,22 +287,46 @@ function App() {
 
   const openCompletionModal = (taskId: string) => {
     setSelectedTaskForCompletion(taskId);
+    setCompletionDetails({
+      description: '',
+      timeSpent: '',
+      sentToQA: false,
+      deployedToProduction: false,
+      tools: [],
+      useCustomDate: false,
+      customDate: new Date().toISOString().split('T')[0]
+    });
     setShowCompletionModal(true);
   };
 
   const handleCompleteTask = async () => {
     if (!selectedTaskForCompletion) return;
 
-    await completeTask(selectedTaskForCompletion, completionDetails);
+    // Si se usa fecha personalizada, convertirla a objeto Date asegurándose de usar la fecha local correcta
+    const customDate = completionDetails.useCustomDate ? (() => {
+      // Crear una fecha local correcta a partir de la fecha seleccionada
+      const [year, month, day] = completionDetails.customDate.split('-').map(Number);
+      return new Date(year, month - 1, day); // Restamos 1 al mes porque en JavaScript los meses van de 0 a 11
+    })() : undefined;
+
+    await completeTask(selectedTaskForCompletion, {
+      description: completionDetails.description,
+      timeSpent: completionDetails.timeSpent,
+      sentToQA: completionDetails.sentToQA,
+      deployedToProduction: completionDetails.deployedToProduction,
+      tools: completionDetails.tools
+    }, customDate);
 
     setShowCompletionModal(false);
     setSelectedTaskForCompletion(null);
-    setCompletionDetails({ 
-      description: '', 
-      timeSpent: '', 
-      sentToQA: false, 
-      deployedToProduction: false, 
-      tools: [] 
+    setCompletionDetails({
+      description: '',
+      timeSpent: '',
+      sentToQA: false,
+      deployedToProduction: false,
+      tools: [],
+      useCustomDate: false,
+      customDate: new Date().toISOString().split('T')[0]
     });
   };
 
@@ -292,7 +334,9 @@ function App() {
     setSelectedTaskForProgress(taskId);
     setProgressDetails({
       description: '',
-      timeSpent: ''
+      timeSpent: '',
+      useCustomDate: false,
+      customDate: new Date().toISOString().split('T')[0]
     });
     setShowProgressModal(true);
   };
@@ -300,11 +344,30 @@ function App() {
   const handleAddProgress = async () => {
     if (!selectedTaskForProgress) return;
 
-    await addTaskProgress(selectedTaskForProgress, progressDetails);
+    // Si se usa fecha personalizada, convertirla a objeto Date asegurándose de usar la fecha local correcta
+    const customDate = progressDetails.useCustomDate ? (() => {
+      // Crear una fecha local correcta a partir de la fecha seleccionada
+      const [year, month, day] = progressDetails.customDate.split('-').map(Number);
+      return new Date(year, month - 1, day); // Restamos 1 al mes porque en JavaScript los meses van de 0 a 11
+    })() : undefined;
+
+    await addTaskProgress(
+      selectedTaskForProgress, 
+      {
+        description: progressDetails.description,
+        timeSpent: progressDetails.timeSpent
+      },
+      customDate
+    );
 
     setShowProgressModal(false);
     setSelectedTaskForProgress(null);
-    setProgressDetails({ description: '', timeSpent: '' });
+    setProgressDetails({
+      description: '',
+      timeSpent: '',
+      useCustomDate: false,
+      customDate: new Date().toISOString().split('T')[0]
+    });
   };
 
   const handleCompletionDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -690,7 +753,7 @@ function App() {
               {/* Calendar and Work Time Tracker */}
               <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 sm:gap-4">
                 <div className="order-2 lg:order-1 mb-3 lg:mb-0">
-                  <Calendar onSelectDate={setSelectedDate} />
+                  <CalendarComponent onSelectDate={setSelectedDate} />
                 </div>
                 <div className="order-1 lg:order-2 mb-3 lg:mb-0">
                   <WorkTimeTracker
@@ -1291,6 +1354,38 @@ function App() {
                   </div>
                 </div>
                 
+                {/* Sección de fecha personalizada */}
+                <div className="mt-5">
+                  <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        id="taskUseCustomDate"
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                        checked={newTask.useCustomDate}
+                        onChange={(e) => setNewTask({ ...newTask, useCustomDate: e.target.checked })}
+                      />
+                      <label htmlFor="taskUseCustomDate" className="ml-2 text-sm font-medium text-gray-200 flex items-center">
+                        <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                        Usar fecha personalizada
+                      </label>
+                    </div>
+                    
+                    {newTask.useCustomDate && (
+                      <div className="ml-6">
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={newTask.customDate}
+                          onChange={(e) => setNewTask({ ...newTask, customDate: e.target.value })}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
                   <button
                     onClick={() => setShowNewTaskModal(false)}
@@ -1446,6 +1541,44 @@ function App() {
               </div>
             </div>
             
+            {/* Sección de fecha personalizada */}
+            <div className="p-3 sm:p-4 border-t border-gray-800">
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                <div className="flex items-center mb-3">
+                  <input
+                    type="checkbox"
+                    id="completionUseCustomDate"
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
+                    checked={completionDetails.useCustomDate}
+                    onChange={(e) => setCompletionDetails(prev => ({ 
+                      ...prev, 
+                      useCustomDate: e.target.checked 
+                    }))}
+                  />
+                  <label htmlFor="completionUseCustomDate" className="ml-2 text-sm font-medium text-gray-200 flex items-center">
+                    <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                    Usar fecha personalizada
+                  </label>
+                </div>
+                
+                {completionDetails.useCustomDate && (
+                  <div className="ml-6">
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Fecha</label>
+                    <input
+                      type="date"
+                      className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
+                      value={completionDetails.customDate}
+                      onChange={(e) => setCompletionDetails(prev => ({ 
+                        ...prev, 
+                        customDate: e.target.value 
+                      }))}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            
             {/* Botones fijos en la parte inferior */}
             <div className="flex justify-end gap-2 p-3 sm:p-4 border-t border-gray-800 flex-shrink-0">
               <button
@@ -1530,6 +1663,44 @@ function App() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+            
+            {/* Sección de fecha personalizada */}
+            <div className="p-3 sm:p-4 border-t border-gray-800">
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                <div className="flex items-center mb-3">
+                  <input
+                    type="checkbox"
+                    id="progressUseCustomDate"
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-purple-500 focus:ring-purple-500"
+                    checked={progressDetails.useCustomDate}
+                    onChange={(e) => setProgressDetails(prev => ({ 
+                      ...prev, 
+                      useCustomDate: e.target.checked 
+                    }))}
+                  />
+                  <label htmlFor="progressUseCustomDate" className="ml-2 text-sm font-medium text-gray-200 flex items-center">
+                    <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                    Usar fecha personalizada
+                  </label>
+                </div>
+                
+                {progressDetails.useCustomDate && (
+                  <div className="ml-6">
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Fecha</label>
+                    <input
+                      type="date"
+                      className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                      value={progressDetails.customDate}
+                      onChange={(e) => setProgressDetails(prev => ({ 
+                        ...prev, 
+                        customDate: e.target.value 
+                      }))}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
               </div>
             </div>
             

@@ -336,7 +336,7 @@ export const tasksService = {
   },
 
   // Crear una nueva tarea
-  create: async (task: Omit<Task, 'id'>): Promise<string> => {
+  create: async (task: Omit<Task, 'id'> & { createdAt?: Date }): Promise<string> => {
     try {
       console.log('-------------------- INICIO CREACIÓN DE TAREA --------------------');
       console.log('databaseService: Intentando crear una nueva tarea:', JSON.stringify(task, null, 2));
@@ -361,10 +361,17 @@ export const tasksService = {
       
       // Copiar solo propiedades que no sean undefined
       Object.entries(task).forEach(([key, value]) => {
-        if (value !== undefined) {
+        if (value !== undefined && key !== 'createdAt') {
           cleanTask[key] = value;
         }
       });
+      
+      // Añadir el timestamp de creación (usar fecha personalizada si existe)
+      if (task.createdAt) {
+        cleanTask.createdAt = task.createdAt;
+      } else {
+        cleanTask.createdAt = serverTimestamp();
+      }
       
       console.log('databaseService: Objeto limpio a guardar en Firestore:', JSON.stringify(cleanTask, null, 2));
       
@@ -434,6 +441,7 @@ export const tasksService = {
       sentToQA?: boolean;
       deployedToProduction?: boolean;
       tools?: string[];
+      completedAt?: Date;
     }
   ): Promise<void> => {
     try {
@@ -441,7 +449,7 @@ export const tasksService = {
       const completionDetails = {
         description: details.description,
         timeSpent: details.timeSpent,
-        completedAt: new Date(),
+        completedAt: details.completedAt || new Date(),
         sentToQA: details.sentToQA || false,
         deployedToProduction: details.deployedToProduction || false,
         tools: details.tools || []
@@ -464,7 +472,8 @@ export const tasksService = {
     progressDetails: {
       description: string;
       timeSpent: string;
-    }
+    },
+    customDate?: Date
   ): Promise<void> => {
     try {
       const taskRef = doc(db, 'tasks', taskId);
@@ -484,7 +493,7 @@ export const tasksService = {
       
       // Crear nueva entrada de progreso
       const newProgress: ProgressEntry = {
-        date: new Date(),
+        date: customDate || new Date(),
         description: progressDetails.description,
         timeSpent: progressDetails.timeSpent,
         createdAt: new Date()
