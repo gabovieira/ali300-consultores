@@ -87,12 +87,28 @@ function App() {
     developerLevel: string;
     adiestramiento: boolean;
     horasAdiestramiento: number;
+    fullName: string;
+    documentId: string;
+    age: number;
+    phone: string;
+    position: string;
+    startDate: string;
   }>({
     company: currentUser?.userData?.company || '',
     area: currentUser?.userData?.area || '',
     developerLevel: currentUser?.userData?.developerLevel || 'junior',
     adiestramiento: currentUser?.userData?.adiestramiento || false,
-    horasAdiestramiento: currentUser?.userData?.horasAdiestramiento || 0
+    horasAdiestramiento: currentUser?.userData?.horasAdiestramiento || 0,
+    fullName: currentUser?.userData?.fullName || '',
+    documentId: currentUser?.userData?.documentId || '',
+    age: currentUser?.userData?.age || 0,
+    phone: currentUser?.userData?.phone || '',
+    position: currentUser?.userData?.position || '',
+    startDate: currentUser?.userData?.startDate ? 
+      (typeof currentUser.userData.startDate === 'string' ? 
+        currentUser.userData.startDate.split('T')[0] : 
+        new Date(currentUser.userData.startDate).toISOString().split('T')[0]) : 
+      ''
   });
 
   const handleSignOut = async () => {
@@ -287,7 +303,13 @@ function App() {
         area: profileData.area,
         developerLevel: profileData.developerLevel,
         adiestramiento: profileData.adiestramiento,
-        horasAdiestramiento: profileData.horasAdiestramiento
+        horasAdiestramiento: profileData.horasAdiestramiento,
+        fullName: profileData.fullName,
+        documentId: profileData.documentId,
+        age: profileData.age,
+        phone: profileData.phone,
+        position: profileData.position,
+        startDate: profileData.startDate ? new Date(profileData.startDate).toISOString() : undefined
       });
       
       setShowEditProfileModal(false);
@@ -472,7 +494,16 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              {!sidebarCollapsed && <span>Perfil</span>}
+              {!sidebarCollapsed && (
+                <div className="flex flex-col items-start">
+                  <span>Perfil</span>
+                  {currentUser?.userData?.fullName && (
+                    <span className="text-xs text-gray-500 truncate max-w-[160px]">
+                      {currentUser.userData.fullName}
+                    </span>
+                  )}
+                </div>
+              )}
             </button>
             <button
               onClick={handleSignOut}
@@ -503,17 +534,19 @@ function App() {
               <div className="flex items-center gap-2 bg-gray-800 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-gray-700 shadow-md w-full sm:w-auto">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
                   <span className="text-white font-bold text-xs">
-                    {currentUser?.displayName?.charAt(0).toUpperCase() || 'U'}
+                    {currentUser?.userData?.fullName?.charAt(0).toUpperCase() || currentUser?.displayName?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0 flex-1">
+                <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-white text-xs sm:text-sm font-medium truncate">
-                    {currentUser?.displayName}
+                    {currentUser?.userData?.fullName || currentUser?.displayName}
                   </span>
-                  <span className="text-gray-400 text-xs hidden sm:inline">•</span>
-                  <span className="text-gray-400 text-xs truncate">
-                    {currentUser?.userData?.company || ''}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400 text-xs truncate">
+                      {currentUser?.userData?.position ? `${currentUser.userData.position} en ` : ''}
+                      {currentUser?.userData?.company || ''}
+                    </span>
+                  </div>
                 </div>
                 <span className="text-cyan-400 text-xs font-semibold px-1.5 sm:px-2 py-0.5 bg-gray-700 rounded-full ml-auto flex-shrink-0">
                   {currentUser?.userData?.developerLevel || 'junior'}
@@ -1140,10 +1173,61 @@ function App() {
       {/* Edit Profile Modal */}
       {showEditProfileModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96">
+          <div className="bg-gray-800 p-6 rounded-lg w-96 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Editar Perfil</h3>
             
             <div className="space-y-4 mb-4">
+              {/* Datos personales */}
+              <h4 className="text-sm font-semibold text-cyan-400">Datos Personales</h4>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Nombre Completo</label>
+                <input
+                  type="text"
+                  placeholder="Nombre completo"
+                  className="w-full bg-gray-700 text-white rounded-lg p-2"
+                  value={profileData.fullName}
+                  onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Documento de Identidad</label>
+                <input
+                  type="text"
+                  placeholder="Cédula o pasaporte"
+                  className="w-full bg-gray-700 text-white rounded-lg p-2"
+                  value={profileData.documentId}
+                  onChange={(e) => setProfileData({ ...profileData, documentId: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Edad</label>
+                <input
+                  type="number"
+                  min="18"
+                  placeholder="Edad"
+                  className="w-full bg-gray-700 text-white rounded-lg p-2"
+                  value={profileData.age || ''}
+                  onChange={(e) => setProfileData({ ...profileData, age: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Teléfono</label>
+                <input
+                  type="text"
+                  placeholder="Número de teléfono"
+                  className="w-full bg-gray-700 text-white rounded-lg p-2"
+                  value={profileData.phone}
+                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                />
+              </div>
+              
+              {/* Datos profesionales */}
+              <h4 className="text-sm font-semibold text-cyan-400 mt-4">Datos Profesionales</h4>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">Empresa a colocar</label>
                 <select
@@ -1168,6 +1252,27 @@ function App() {
               </div>
               
               <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Cargo</label>
+                <input
+                  type="text"
+                  placeholder="Cargo o posición"
+                  className="w-full bg-gray-700 text-white rounded-lg p-2"
+                  value={profileData.position}
+                  onChange={(e) => setProfileData({ ...profileData, position: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Fecha de inicio</label>
+                <input
+                  type="date"
+                  className="w-full bg-gray-700 text-white rounded-lg p-2"
+                  value={profileData.startDate}
+                  onChange={(e) => setProfileData({ ...profileData, startDate: e.target.value })}
+                />
+              </div>
+              
+              <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1">Nivel de Desarrollador</label>
                 <select
                   className="w-full bg-gray-700 text-white rounded-lg p-2"
@@ -1178,7 +1283,7 @@ function App() {
                   <option value="junior">Junior</option>
                   <option value="semi-senior">Semi-Senior</option>
                   <option value="senior">Senior</option>
-                  <option value="lead">Lead</option>
+                  <option value="tech-lead">Tech Lead</option>
                 </select>
               </div>
               
