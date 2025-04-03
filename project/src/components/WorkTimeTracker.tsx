@@ -62,12 +62,60 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
     }
   });
 
-  // Calcular horas totales trabajadas
-  const totalHours = completedTasks.reduce((total, task) => {
-    const timeSpent = task.completionDetails?.timeSpent || '0';
-    const hours = parseFloat(timeSpent) || 0;
-    return total + hours;
+  // Calcular horas totales trabajadas (incluidas las de progreso)
+  const totalHours = tasks.reduce((total, task) => {
+    let taskHours = 0;
+    
+    // Sumar horas de tareas completadas hoy
+    if (task.status === 'completed' && task.completionDetails) {
+      const completedAt = task.completionDetails.completedAt instanceof Timestamp 
+        ? task.completionDetails.completedAt.toDate() 
+        : task.completionDetails.completedAt instanceof Date
+          ? task.completionDetails.completedAt
+          : new Date(task.completionDetails.completedAt);
+      
+      if (completedAt.toDateString() === selectedDate.toDateString()) {
+        const timeStr = task.completionDetails.timeSpent;
+        // Intentar convertir el string de tiempo a horas
+        const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
+        taskHours += hours;
+      }
+    }
+    
+    // Sumar horas de progreso registradas hoy
+    if (task.progress && task.progress.length > 0) {
+      task.progress.forEach(entry => {
+        const entryDate = entry.date instanceof Timestamp 
+          ? entry.date.toDate() 
+          : entry.date instanceof Date
+            ? entry.date
+            : new Date(entry.date);
+        
+        if (entryDate.toDateString() === selectedDate.toDateString()) {
+          const timeStr = entry.timeSpent;
+          const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
+          taskHours += hours;
+        }
+      });
+    }
+    
+    return total + taskHours;
   }, 0);
+
+  // Función auxiliar para extraer horas de strings como "2 horas", "30 minutos"
+  const extractHoursFromTimeString = (timeStr: string): number => {
+    if (!timeStr) return 0;
+    
+    // Buscar horas
+    const hoursMatch = timeStr.match(/(\d+(\.\d+)?)\s*hora/i);
+    const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+    
+    // Buscar minutos
+    const minutesMatch = timeStr.match(/(\d+)\s*minuto/i);
+    const minutes = minutesMatch ? parseInt(minutesMatch[1]) / 60 : 0;
+    
+    return hours + minutes;
+  };
 
   // Verificar si el usuario es trainee y tiene horas de adiestramiento
   const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
@@ -80,40 +128,52 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   
   // Calcular horas de adiestramiento automáticamente
   useEffect(() => {
-    if (!hasTrainingProgram || completedTasks.length === 0) {
+    if (!hasTrainingProgram) {
       setTrainingHours(null);
       return;
     }
 
-    // Total de tareas completadas en el día
-    const taskCount = completedTasks.length;
-    
-    // Distribuir las horas de adiestramiento entre las tareas completadas
-    // La fórmula divide el total de horas de adiestramiento por el número de tareas
-    const hoursPerTask = dailyTrainingHours / taskCount;
-    
-    // Generar descripción basada en las tareas completadas
-    let description = 'Se recibió adiestramiento para realizar: ';
-    
-    // Agregar información de las tareas completadas
-    completedTasks.forEach((task, index) => {
-      const requirement = requirements.find(r => r.id === task.requirementId);
+    // Si hay actividad en el día (completada o en progreso)
+    if (allActivityTasks.length > 0) {
+      // Generar descripción basada en las tareas del día
+      let description = 'Se recibió adiestramiento para realizar: ';
       
-      description += `${index > 0 ? ', ' : ''}la tarea "${task.description}" del requerimiento ${requirement?.tipo || 'REQ'}: ${requirement?.name || 'Desconocido'}`;
-      
-      // Agregar cómo se realizó si hay detalles de completado
-      if (task.completionDetails?.description) {
-        description += ` (${task.completionDetails.description})`;
-      }
-    });
+      // Agregar información de todas las tareas con actividad
+      allActivityTasks.forEach((task, index) => {
+        const requirement = requirements.find(r => r.id === task.requirementId);
+        
+        description += `${index > 0 ? ', ' : ''}la tarea "${task.description}" del requerimiento ${requirement?.tipo || 'REQ'}: ${requirement?.name || 'Desconocido'}`;
+        
+        // Agregar detalles dependiendo del estado de la tarea
+        if (task.status === 'completed' && task.completionDetails?.description) {
+          description += ` (${task.completionDetails.description})`;
+        } else if (task.progress && task.progress.length > 0) {
+          const todaysProgress = task.progress.filter(entry => {
+            const entryDate = entry.date instanceof Timestamp 
+              ? entry.date.toDate() 
+              : entry.date instanceof Date
+                ? entry.date
+                : new Date(entry.date);
+            
+            return entryDate.toDateString() === selectedDate.toDateString();
+          });
+          
+          if (todaysProgress.length > 0) {
+            description += ` (${todaysProgress[0].description})`;
+          }
+        }
+      });
 
-    setTrainingHours({
-      description,
-      hours: dailyTrainingHours,
-      isAutoGenerated: true,
-      hoursPerTask
-    });
-  }, [completedTasks, hasTrainingProgram, dailyTrainingHours, requirements]);
+      setTrainingHours({
+        description,
+        hours: dailyTrainingHours,
+        isAutoGenerated: true,
+        hoursPerTask: dailyTrainingHours / allActivityTasks.length
+      });
+    } else {
+      setTrainingHours(null);
+    }
+  }, [allActivityTasks, hasTrainingProgram, dailyTrainingHours, requirements, selectedDate]);
 
   // Actualizar tareas visibles cuando cambian las tareas completadas o la paginación
   useEffect(() => {
@@ -213,8 +273,8 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                   Adiestramiento de {dailyTrainingHours} horas registrado automáticamente
                 </span>
               ) : (
-                completedTasks.length === 0 
-                  ? 'Completa tareas para registrar horas de adiestramiento'
+                allActivityTasks.length === 0 
+                  ? 'Registra actividad para acumular horas de adiestramiento'
                   : 'Adiestramiento pendiente de actualizar'
               )}
             </div>
