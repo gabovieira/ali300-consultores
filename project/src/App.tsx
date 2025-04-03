@@ -1172,167 +1172,250 @@ function App() {
 
       {/* Edit Profile Modal */}
       {showEditProfileModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Editar Perfil</h3>
-            
-            <div className="space-y-4 mb-4">
-              {/* Datos personales */}
-              <h4 className="text-sm font-semibold text-cyan-400">Datos Personales</h4>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Nombre Completo</label>
-                <input
-                  type="text"
-                  placeholder="Nombre completo"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.fullName}
-                  onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Documento de Identidad</label>
-                <input
-                  type="text"
-                  placeholder="Cédula o pasaporte"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.documentId}
-                  onChange={(e) => setProfileData({ ...profileData, documentId: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Edad</label>
-                <input
-                  type="number"
-                  min="18"
-                  placeholder="Edad"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.age || ''}
-                  onChange={(e) => setProfileData({ ...profileData, age: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Teléfono</label>
-                <input
-                  type="text"
-                  placeholder="Número de teléfono"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.phone}
-                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                />
-              </div>
-              
-              {/* Datos profesionales */}
-              <h4 className="text-sm font-semibold text-cyan-400 mt-4">Datos Profesionales</h4>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Empresa a colocar</label>
-                <select
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.company}
-                  onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
-                >
-                  <option value="">Seleccionar empresa</option>
-                  <option value="Seguros Universitas, C.A.">Seguros Universitas, C.A.</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Área</label>
-                <input
-                  type="text"
-                  placeholder="Área o departamento"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.area}
-                  onChange={(e) => setProfileData({ ...profileData, area: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Cargo</label>
-                <input
-                  type="text"
-                  placeholder="Cargo o posición"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.position}
-                  onChange={(e) => setProfileData({ ...profileData, position: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Fecha de inicio</label>
-                <input
-                  type="date"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.startDate}
-                  onChange={(e) => setProfileData({ ...profileData, startDate: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Nivel de Desarrollador</label>
-                <select
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={profileData.developerLevel}
-                  onChange={(e) => setProfileData({ ...profileData, developerLevel: e.target.value })}
-                >
-                  <option value="trainee">Trainee</option>
-                  <option value="junior">Junior</option>
-                  <option value="semi-senior">Semi-Senior</option>
-                  <option value="senior">Senior</option>
-                  <option value="tech-lead">Tech Lead</option>
-                </select>
-              </div>
-              
-              {profileData.developerLevel === 'trainee' && (
-                <div>
-                  <div className="flex items-center mb-2">
-                    <input
-                      type="checkbox"
-                      id="adiestramientoCheck"
-                      className="mr-2 h-4 w-4 rounded bg-gray-700 border-gray-600"
-                      checked={profileData.adiestramiento}
-                      onChange={(e) => setProfileData({ ...profileData, adiestramiento: e.target.checked })}
-                    />
-                    <label htmlFor="adiestramientoCheck" className="text-sm font-medium text-gray-400">
-                      En programa de adiestramiento
-                    </label>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl">
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Vista previa del perfil */}
+              <div className="bg-gradient-to-b from-gray-800 to-gray-900 p-6 md:w-2/5">
+                <h3 className="text-lg font-semibold text-white mb-5">Vista previa</h3>
+                
+                <div className="bg-gray-800 rounded-xl p-5 shadow-lg">
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="w-24 h-24 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shadow-md mb-3">
+                      <span className="text-white font-bold text-4xl">
+                        {profileData.fullName ? profileData.fullName.charAt(0).toUpperCase() : 'U'}
+                      </span>
+                    </div>
+                    <h4 className="text-xl font-semibold text-white">{profileData.fullName || 'Nombre completo'}</h4>
+                    <span className="text-cyan-400 text-sm font-medium px-2 py-1 bg-gray-700 rounded-full mt-2">
+                      {profileData.developerLevel === 'trainee' ? 'Trainee' :
+                       profileData.developerLevel === 'junior' ? 'Junior' :
+                       profileData.developerLevel === 'semi-senior' ? 'Semi-Senior' :
+                       profileData.developerLevel === 'senior' ? 'Senior' : 'Tech Lead'}
+                    </span>
                   </div>
                   
-                  {profileData.adiestramiento && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">Horas diarias de adiestramiento</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="8"
-                        step="0.5"
-                        className="w-full bg-gray-700 text-white rounded-lg p-2"
-                        value={profileData.horasAdiestramiento}
-                        onChange={(e) => setProfileData({ ...profileData, horasAdiestramiento: parseFloat(e.target.value) || 0 })}
-                      />
+                  <div className="space-y-2 text-sm mt-5">
+                    <div className="flex items-center text-gray-300">
+                      <Briefcase className="h-4 w-4 mr-2 text-gray-500" />
+                      {profileData.position || 'Cargo'} en {profileData.company || 'Empresa'}
+                    </div>
+                    <div className="flex items-center text-gray-300">
+                      <Users className="h-4 w-4 mr-2 text-gray-500" />
+                      {profileData.area || 'Área de trabajo'}
+                    </div>
+                    <div className="flex items-center text-gray-300">
+                      <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+                      Desde: {profileData.startDate || 'Fecha de inicio'}
+                    </div>
+                    {profileData.developerLevel === 'trainee' && profileData.adiestramiento && (
+                      <div className="flex items-center text-purple-300">
+                        <Clock className="h-4 w-4 mr-2 text-purple-400" />
+                        {profileData.horasAdiestramiento}h de adiestramiento diarias
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Formulario de edición */}
+              <div className="p-6 md:w-3/5 overflow-y-auto max-h-[70vh] md:max-h-[90vh]">
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-lg font-semibold">Editar Perfil</h3>
+                  <button 
+                    onClick={() => setShowEditProfileModal(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-5">
+                  {/* Datos personales */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      Datos Personales
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Nombre Completo</label>
+                        <input
+                          type="text"
+                          placeholder="Nombre completo"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.fullName}
+                          onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Documento de Identidad</label>
+                        <input
+                          type="text"
+                          placeholder="Cédula o pasaporte"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.documentId}
+                          onChange={(e) => setProfileData({ ...profileData, documentId: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Edad</label>
+                        <input
+                          type="number"
+                          min="18"
+                          placeholder="Edad"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.age || ''}
+                          onChange={(e) => setProfileData({ ...profileData, age: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Teléfono</label>
+                        <input
+                          type="text"
+                          placeholder="Número de teléfono"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Datos profesionales */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center">
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Datos Profesionales
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Empresa a colocar</label>
+                        <select
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.company}
+                          onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
+                        >
+                          <option value="">Seleccionar empresa</option>
+                          <option value="Seguros Universitas, C.A.">Seguros Universitas, C.A.</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Área</label>
+                        <input
+                          type="text"
+                          placeholder="Área o departamento"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.area}
+                          onChange={(e) => setProfileData({ ...profileData, area: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Cargo</label>
+                        <input
+                          type="text"
+                          placeholder="Cargo o posición"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.position}
+                          onChange={(e) => setProfileData({ ...profileData, position: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Fecha de inicio</label>
+                        <input
+                          type="date"
+                          className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={profileData.startDate}
+                          onChange={(e) => setProfileData({ ...profileData, startDate: e.target.value })}
+                        />
+                      </div>
+                      
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Nivel de Desarrollador</label>
+                        <div className="grid grid-cols-5 gap-2">
+                          {['trainee', 'junior', 'semi-senior', 'senior', 'tech-lead'].map((level) => (
+                            <button
+                              key={level}
+                              type="button"
+                              className={`py-2 px-1 sm:px-3 rounded-lg text-xs sm:text-sm font-medium border transition-all ${
+                                profileData.developerLevel === level 
+                                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-transparent' 
+                                  : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                              }`}
+                              onClick={() => setProfileData({ ...profileData, developerLevel: level })}
+                            >
+                              {level === 'trainee' ? 'Trainee' :
+                               level === 'junior' ? 'Junior' :
+                               level === 'semi-senior' ? 'Semi-Sr' :
+                               level === 'senior' ? 'Senior' : 'Tech Lead'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Configuración de adiestramiento */}
+                  {profileData.developerLevel === 'trainee' && (
+                    <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                      <div className="flex items-center mb-3">
+                        <input
+                          type="checkbox"
+                          id="adiestramientoCheck"
+                          className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                          checked={profileData.adiestramiento}
+                          onChange={(e) => setProfileData({ ...profileData, adiestramiento: e.target.checked })}
+                        />
+                        <label htmlFor="adiestramientoCheck" className="ml-2 text-sm font-medium text-gray-200">
+                          En programa de adiestramiento
+                        </label>
+                      </div>
+                      
+                      {profileData.adiestramiento && (
+                        <div className="ml-6">
+                          <label className="block text-sm font-medium text-gray-400 mb-1">Horas diarias</label>
+                          <div className="flex items-center">
+                            <input
+                              type="range"
+                              min="0"
+                              max="8"
+                              step="0.5"
+                              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                              value={profileData.horasAdiestramiento}
+                              onChange={(e) => setProfileData({ ...profileData, horasAdiestramiento: parseFloat(e.target.value) || 0 })}
+                            />
+                            <span className="ml-3 text-cyan-400 font-semibold">{profileData.horasAdiestramiento}h</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
+                  
+                  {/* Botones de acción */}
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                    <button
+                      onClick={() => setShowEditProfileModal(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleUpdateProfile}
+                      className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-lg shadow-lg transition-colors"
+                    >
+                      Guardar Cambios
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowEditProfileModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleUpdateProfile}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg"
-              >
-                Guardar Cambios
-              </button>
+              </div>
             </div>
           </div>
         </div>
