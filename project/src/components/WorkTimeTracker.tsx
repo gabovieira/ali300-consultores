@@ -122,6 +122,12 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   const extractHoursFromTimeString = (timeStr: string): number => {
     if (!timeStr) return 0;
     
+    // Verificar si ya es un número (por ejemplo "2" o "2.5")
+    const directNumber = parseFloat(timeStr);
+    if (!isNaN(directNumber) && directNumber >= 0) {
+      return directNumber;
+    }
+    
     // Buscar horas
     const hoursMatch = timeStr.match(/(\d+(\.\d+)?)\s*hora/i);
     const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
@@ -240,7 +246,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
               <h4 className="text-white text-xs sm:text-sm font-medium">Horas de Trabajo</h4>
             </div>
             <div className="text-right">
-              <span className="text-cyan-400 font-semibold text-xs sm:text-sm">{totalHours.toFixed(1)}</span>
+              <span className="text-cyan-400 font-semibold text-xs sm:text-sm">{Math.min(totalHours, workHours).toFixed(1)}</span>
               <span className="text-gray-400 text-xs sm:text-sm"> / {workHours.toFixed(1)}</span>
             </div>
           </div>
