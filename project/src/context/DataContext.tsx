@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { requirementsService, tasksService, Requirement, Task } from '../services/databaseService';
+import { requirementsService, tasksService, Requirement, Task, ProgressEntry } from '../services/databaseService';
 import { useAuth } from './AuthContext';
 
 interface DataContextType {
@@ -11,16 +11,17 @@ interface DataContextType {
   
   // Funciones para Requirements
   setSelectedRequirement: (id: string) => void;
-  addRequirement: (requirement: { name: string; tipo?: Requirement['tipo']; tieneEstimacion?: boolean; tiempoEstimado?: string }) => Promise<string | undefined>;
+  addRequirement: (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
   updateRequirement: (id: string, data: Partial<Requirement>) => Promise<void>;
-  completeRequirement: (id: string) => Promise<void>;
   deleteRequirement: (id: string) => Promise<void>;
+  completeRequirement: (id: string, completionInfo?: { sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }) => Promise<void>;
   
   // Funciones para Tasks
-  addTask: (task: Omit<Task, 'id'>) => Promise<void>;
+  addTask: (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
   updateTaskStatus: (id: string, status: Task['status']) => Promise<void>;
-  completeTask: (id: string, details: { description: string; timeSpent: string }) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  completeTask: (id: string, details: { description: string; timeSpent: string; sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }) => Promise<void>;
+  addTaskProgress: (id: string, progressDetails: { description: string; timeSpent: string }) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -132,34 +133,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Funciones para Requirements
-  const addRequirement = async (requirementData: { name: string; tipo?: Requirement['tipo']; tieneEstimacion?: boolean; tiempoEstimado?: string }) => {
+  const addRequirement = async (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>): Promise<string | null> => {
     if (!currentUser) {
       setError('Debes iniciar sesión para crear un requerimiento');
-      return;
+      return null;
     }
 
     try {
-      console.log('DataContext: Iniciando creación de requerimiento con datos:', requirementData);
+      console.log('DataContext: Iniciando creación de requerimiento con datos:', data);
       console.log('DataContext: Usuario autenticado:', currentUser);
       
       // Crear objeto limpio del requerimiento (sin undefined)
-      const requirementToCreate: Omit<Requirement, 'id' | 'createdAt'> = {
-        name: requirementData.name,
+      const requirementToCreate: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'> = {
+        name: data.name,
         status: 'active',
         userId: currentUser.uid // Añadir el ID del usuario actual
       };
       
       // Añadir propiedades opcionales solo si están definidas
-      if (requirementData.tipo) {
-        requirementToCreate.tipo = requirementData.tipo;
+      if (data.tipo) {
+        requirementToCreate.tipo = data.tipo;
       }
       
-      if (requirementData.tieneEstimacion !== undefined) {
-        requirementToCreate.tieneEstimacion = requirementData.tieneEstimacion;
+      if (data.tieneEstimacion !== undefined) {
+        requirementToCreate.tieneEstimacion = data.tieneEstimacion;
         
         // Solo añadir tiempoEstimado si tieneEstimacion es true y hay un valor
-        if (requirementData.tieneEstimacion && requirementData.tiempoEstimado) {
-          requirementToCreate.tiempoEstimado = requirementData.tiempoEstimado;
+        if (data.tieneEstimacion && data.tiempoEstimado) {
+          requirementToCreate.tiempoEstimado = data.tiempoEstimado;
         }
       }
       
@@ -172,22 +173,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Crear objeto para el estado local
       const newRequirement: Requirement = {
         id: newId,
-        name: requirementData.name,
+        name: data.name,
         status: 'active',
         createdAt: new Date(),
         userId: currentUser.uid
       };
       
       // Añadir propiedades opcionales al objeto del estado
-      if (requirementData.tipo) {
-        newRequirement.tipo = requirementData.tipo;
+      if (data.tipo) {
+        newRequirement.tipo = data.tipo;
       }
       
-      if (requirementData.tieneEstimacion !== undefined) {
-        newRequirement.tieneEstimacion = requirementData.tieneEstimacion;
+      if (data.tieneEstimacion !== undefined) {
+        newRequirement.tieneEstimacion = data.tieneEstimacion;
         
-        if (requirementData.tieneEstimacion && requirementData.tiempoEstimado) {
-          newRequirement.tiempoEstimado = requirementData.tiempoEstimado;
+        if (data.tieneEstimacion && data.tiempoEstimado) {
+          newRequirement.tiempoEstimado = data.tiempoEstimado;
         }
       }
       
@@ -210,7 +211,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError('Error al crear el requisito. Por favor, intenta de nuevo.');
       }
       
-      return undefined;
+      return null;
     }
   };
 
@@ -223,18 +224,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('Error al actualizar requisito:', err);
       setError('Error al actualizar el requisito. Por favor, intenta de nuevo.');
-    }
-  };
-
-  const completeRequirement = async (id: string) => {
-    try {
-      await requirementsService.update(id, { status: 'completed' });
-      setRequirements(
-        requirements.map(req => (req.id === id ? { ...req, status: 'completed' } : req))
-      );
-    } catch (err) {
-      console.error('Error al completar requisito:', err);
-      setError('Error al completar el requisito. Por favor, intenta de nuevo.');
     }
   };
 
@@ -271,17 +260,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Funciones para Tasks
-  const addTask = async (taskData: Omit<Task, 'id'>) => {
+  const addTask = async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const newId = await tasksService.create(taskData);
+      const newId = await tasksService.create(data);
       const newTask: Task = {
         id: newId,
-        ...taskData
+        ...data
       };
       setTasks([...tasks, newTask]);
+      return newId;
     } catch (err) {
       console.error('Error al crear tarea:', err);
       setError('Error al crear la tarea. Por favor, intenta de nuevo.');
+      return null;
     }
   };
 
@@ -295,29 +286,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const completeTask = async (id: string, details: { description: string; timeSpent: string }) => {
+  const completeTask = async (
+    id: string, 
+    details: { 
+      description: string; 
+      timeSpent: string;
+      sentToQA?: boolean;
+      deployedToProduction?: boolean;
+      tools?: string[];
+    }
+  ) => {
+    setLoading(true);
+    setError(null);
     try {
       await tasksService.complete(id, {
         ...details,
         completedAt: new Date()
       });
-      setTasks(
-        tasks.map(task =>
-          task.id === id
-            ? {
-                ...task,
-                status: 'completed',
-                completionDetails: {
-                  ...details,
-                  completedAt: new Date()
-                }
-              }
-            : task
-        )
-      );
-    } catch (err) {
-      console.error('Error al completar tarea:', err);
-      setError('Error al completar la tarea. Por favor, intenta de nuevo.');
+      setTasks(prevTasks => prevTasks.map(task => 
+        task.id === id ? { 
+          ...task, 
+          status: 'completed',
+          completionDetails: {
+            description: details.description,
+            timeSpent: details.timeSpent,
+            completedAt: new Date(),
+            sentToQA: details.sentToQA || false,
+            deployedToProduction: details.deployedToProduction || false,
+            tools: details.tools || []
+          } 
+        } : task
+      ));
+    } catch (error) {
+      setError(`Error al completar la tarea: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -331,6 +334,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Añadir nueva función para agregar progreso diario
+  const addTaskProgress = async (
+    id: string,
+    progressDetails: {
+      description: string;
+      timeSpent: string;
+    }
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await tasksService.addTaskProgress(id, progressDetails);
+      
+      // Buscar la tarea en el estado local
+      const taskIndex = tasks.findIndex(task => task.id === id);
+      if (taskIndex !== -1) {
+        // Crear una copia del arreglo de tareas
+        const updatedTasks = [...tasks];
+        
+        // Actualizar la tarea específica
+        const task = updatedTasks[taskIndex];
+        
+        // Crear la nueva entrada de progreso
+        const newProgress: ProgressEntry = {
+          date: new Date(),
+          description: progressDetails.description,
+          timeSpent: progressDetails.timeSpent,
+          createdAt: new Date()
+        };
+        
+        // Añadir la nueva entrada al progreso existente o crear un nuevo arreglo
+        const progress = task.progress ? [...task.progress, newProgress] : [newProgress];
+        
+        // Actualizar la tarea
+        updatedTasks[taskIndex] = {
+          ...task,
+          status: 'in-progress',
+          progress
+        };
+        
+        // Actualizar el estado
+        setTasks(updatedTasks);
+      }
+    } catch (error) {
+      setError(`Error al añadir progreso a la tarea: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Actualizar completeRequirement para usar la nueva interfaz
+  const completeRequirement = async (
+    id: string,
+    completionInfo?: {
+      sentToQA?: boolean;
+      deployedToProduction?: boolean;
+      tools?: string[];
+    }
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await requirementsService.complete(id, completionInfo);
+      
+      // Actualizar el estado local
+      setRequirements(prevReqs => prevReqs.map(req => 
+        req.id === id ? { 
+          ...req, 
+          status: 'completed',
+          completedAt: new Date(),
+          sentToQA: completionInfo?.sentToQA || false,
+          deployedToProduction: completionInfo?.deployedToProduction || false,
+          tools: completionInfo?.tools || []
+        } : req
+      ));
+    } catch (error) {
+      setError(`Error al completar el requerimiento: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value: DataContextType = {
     requirements,
     tasks,
@@ -340,12 +425,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSelectedRequirement,
     addRequirement,
     updateRequirement,
-    completeRequirement,
     deleteRequirement,
+    completeRequirement,
     addTask,
     updateTaskStatus,
+    deleteTask,
     completeTask,
-    deleteTask
+    addTaskProgress
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

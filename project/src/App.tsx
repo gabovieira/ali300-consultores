@@ -1,33 +1,47 @@
-import React, { useState } from 'react';
-import { ClipboardList } from 'lucide-react';
-import { CheckCircle } from 'lucide-react';
-import { XCircle } from 'lucide-react';
-import { AlertCircle } from 'lucide-react';
-import { BarChart3 } from 'lucide-react';
-import { Clock } from 'lucide-react';
-import { Users } from 'lucide-react';
-import { Settings } from 'lucide-react';
-import { Plus } from 'lucide-react';
-import { Save } from 'lucide-react';
-import { FileText } from 'lucide-react';
-import { Trash2 } from 'lucide-react';
-import { ChevronLeft } from 'lucide-react';
-import { ChevronRight } from 'lucide-react';
-import { ListTodo } from 'lucide-react';
-import { CheckSquare } from 'lucide-react';
-import { Clock4 } from 'lucide-react';
-import { Edit } from 'lucide-react';
-import { LogOut } from 'lucide-react';
-import { Briefcase } from 'lucide-react';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { 
+  ClipboardList, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Settings, 
+  AlignLeft, 
+  Tag, 
+  BarChart, 
+  Calendar, 
+  User, 
+  LogOut,
+  Pencil,
+  TrashIcon,
+  Plus,
+  ChevronRight,
+  FileText,
+  Clock4,
+  CheckSquare,
+  AlertCircle,
+  BarChart3,
+  Users,
+  Trash2,
+  ChevronLeft,
+  ListTodo,
+  Edit
+} from 'lucide-react';
+import { useAuth } from './hooks/useAuth';
 import { useData } from './context/DataContext';
-import { useAuth } from './context/AuthContext';
-import { Task, Requirement } from './services/databaseService';
+import { RequirementType, Requirement, Task, TaskType, TaskPriority } from './services/databaseService';
+import { UserProfileModal } from './components/UserProfileModal';
+import { WorkTimeTracker } from './components/WorkTimeTracker';
+import Icon from './components/Icon';
 import AuthScreen from './components/AuthScreen';
 import WelcomePage from './components/WelcomePage';
 import Calendar from './components/Calendar';
-import { WorkTimeTracker } from './components/WorkTimeTracker';
-import Icon from './components/Icon';
+import { 
+  ListTodo, 
+  AlertCircle, 
+  Briefcase, 
+  Calendar as CalendarIcon, 
+  Edit
+} from 'lucide-react';
 
 function App() {
   const { currentUser, signOut, updateProfile } = useAuth();
@@ -45,7 +59,8 @@ function App() {
     completeTask,
     deleteTask,
     updateRequirement,
-    deleteRequirement
+    deleteRequirement,
+    addTaskProgress
   } = useData();
 
   // Si no hay usuario autenticado, mostrar la página de bienvenida en lugar de la pantalla de autenticación
@@ -62,6 +77,9 @@ function App() {
   const [completionDetails, setCompletionDetails] = useState({
     description: '',
     timeSpent: '',
+    sentToQA: false,
+    deployedToProduction: false,
+    tools: [] as string[]
   });
   const [activeView, setActiveView] = useState<'all' | 'pending' | 'completed' | 'dashboard'>('dashboard');
   const [showNewRequirementModal, setShowNewRequirementModal] = useState(false);
@@ -110,6 +128,17 @@ function App() {
         new Date(currentUser.userData.startDate).toISOString().split('T')[0]) : 
       ''
   });
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [selectedTaskForProgress, setSelectedTaskForProgress] = useState<string | null>(null);
+  const [progressDetails, setProgressDetails] = useState({
+    description: '',
+    timeSpent: ''
+  });
+  const [availableTools, setAvailableTools] = useState([
+    'React', 'Next.js', 'Firebase', 'TypeScript', 'JavaScript', 
+    'Node.js', 'Express', 'CSS', 'Tailwind', 'Material UI', 'Bootstrap'
+  ]);
+  const [newTool, setNewTool] = useState('');
 
   const handleSignOut = async () => {
     try {
@@ -236,7 +265,79 @@ function App() {
 
     setShowCompletionModal(false);
     setSelectedTaskForCompletion(null);
-    setCompletionDetails({ description: '', timeSpent: '' });
+    setCompletionDetails({ 
+      description: '', 
+      timeSpent: '', 
+      sentToQA: false, 
+      deployedToProduction: false, 
+      tools: [] 
+    });
+  };
+
+  const openProgressModal = (taskId: string) => {
+    setSelectedTaskForProgress(taskId);
+    setProgressDetails({
+      description: '',
+      timeSpent: ''
+    });
+    setShowProgressModal(true);
+  };
+
+  const handleAddProgress = async () => {
+    if (!selectedTaskForProgress) return;
+
+    await addTaskProgress(selectedTaskForProgress, progressDetails);
+
+    setShowProgressModal(false);
+    setSelectedTaskForProgress(null);
+    setProgressDetails({ description: '', timeSpent: '' });
+  };
+
+  const handleCompletionDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCompletionDetails(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setCompletionDetails(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleToolSelection = (tool: string) => {
+    setCompletionDetails(prev => {
+      const tools = prev.tools.includes(tool)
+        ? prev.tools.filter(t => t !== tool)
+        : [...prev.tools, tool];
+      return { ...prev, tools };
+    });
+  };
+
+  const handleAddNewTool = () => {
+    if (newTool.trim() && !availableTools.includes(newTool)) {
+      setAvailableTools(prev => [...prev, newTool]);
+      setCompletionDetails(prev => ({ ...prev, tools: [...prev.tools, newTool] }));
+      setNewTool('');
+    }
+  };
+  
+  const handleCompleteRequirement = async (reqId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Modal para confirmar y pedir información adicional
+    if (confirm('¿Estás seguro de marcar este requerimiento como completado?')) {
+      const goesToQA = confirm('¿El requerimiento pasa a pruebas de calidad (QA)?');
+      const goesToProduction = confirm('¿El requerimiento se despliega a producción?');
+      
+      // Mostrar un prompt para herramientas usadas
+      const toolsUsed = prompt('¿Qué herramientas se utilizaron? (separadas por coma)');
+      const tools = toolsUsed ? toolsUsed.split(',').map(t => t.trim()) : [];
+      
+      await completeRequirement(reqId, {
+        sentToQA: goesToQA,
+        deployedToProduction: goesToProduction,
+        tools
+      });
+    }
   };
 
   // Filtrado de tareas
@@ -735,7 +836,7 @@ function App() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                                completeRequirement(req.id!);
+                            handleCompleteRequirement(req.id!, e);
                           }}
                               className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-2 py-1 rounded-lg text-xs shadow-sm transition-all"
                         >
@@ -816,11 +917,52 @@ function App() {
                               <div className="mt-2 p-2 bg-gray-700 rounded text-sm">
                                 <div className="font-medium text-cyan-400">Detalles de completado:</div>
                                 <div className="text-gray-300 mt-1">{task.completionDetails.description}</div>
-                                <div className="text-gray-400 mt-1">
-                                  Tiempo: {task.completionDetails.timeSpent} • 
-                                  Completado: {task.completionDetails.completedAt instanceof Date 
+                                <div className="text-gray-400 mt-1 flex flex-wrap justify-between">
+                                  <span>Tiempo: {task.completionDetails.timeSpent}</span>
+                                  <span>Completado: {task.completionDetails.completedAt instanceof Date 
                                     ? task.completionDetails.completedAt.toLocaleDateString() 
-                                    : 'Fecha desconocida'}
+                                    : new Date(task.completionDetails.completedAt).toLocaleDateString()}</span>
+                                </div>
+                                
+                                {/* Información adicional de completado */}
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {task.completionDetails.sentToQA && (
+                                    <span className="bg-blue-900 text-blue-200 text-xs px-2 py-1 rounded-full">Enviado a QA</span>
+                                  )}
+                                  {task.completionDetails.deployedToProduction && (
+                                    <span className="bg-green-900 text-green-200 text-xs px-2 py-1 rounded-full">Desplegado a Producción</span>
+                                  )}
+                                  {task.completionDetails.tools && task.completionDetails.tools.length > 0 && (
+                                    <div className="w-full mt-1">
+                                      <span className="text-xs text-gray-400">Herramientas:</span>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {task.completionDetails.tools.map((tool, idx) => (
+                                          <span key={idx} className="bg-gray-600 text-gray-200 text-xs px-2 py-0.5 rounded-full">
+                                            {tool}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {/* Historial de progreso */}
+                            {task.progress && task.progress.length > 0 && (
+                              <div className="mt-2 p-2 bg-gray-700 rounded text-sm">
+                                <div className="font-medium text-purple-400">Historial de progreso:</div>
+                                <div className="max-h-32 overflow-y-auto">
+                                  {task.progress.map((entry, index) => (
+                                    <div key={index} className="border-l-2 border-purple-500 pl-2 py-1 mt-1">
+                                      <div className="text-gray-300">{entry.description}</div>
+                                      <div className="text-gray-400 text-xs flex justify-between">
+                                        <span>Tiempo: {entry.timeSpent}</span>
+                                        <span>{entry.date instanceof Date 
+                                          ? entry.date.toLocaleDateString()
+                                          : new Date(entry.date).toLocaleDateString()}</span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             )}
@@ -843,12 +985,20 @@ function App() {
                               </>
                             )}
                             {task.status === 'in-progress' && (
-                              <button 
-                                onClick={() => openCompletionModal(task.id!)} 
-                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
-                              >
-                                Completar
-                              </button>
+                              <>
+                                <button 
+                                  onClick={() => openProgressModal(task.id!)} 
+                                  className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Registrar Avance
+                                </button>
+                                <button 
+                                  onClick={() => openCompletionModal(task.id!)} 
+                                  className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Completar
+                                </button>
+                              </>
                             )}
                             <button 
                               onClick={() => handleDeleteTask(task.id!)} 
@@ -1156,30 +1306,98 @@ function App() {
                       ¿Cómo se completó?
                     </label>
                     <textarea
+                      name="description"
                       placeholder="Describe cómo completaste la tarea y los detalles relevantes..."
                       className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors resize-none h-32"
                       value={completionDetails.description}
-                      onChange={(e) => setCompletionDetails(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={handleCompletionDetailsChange}
                     />
                   </div>
                   
                   <div>
                     <label className="flex items-center text-sm font-medium text-green-400 mb-2">
                       <Clock4 className="h-4 w-4 mr-2" />
-                      Tiempo dedicado
+                      Tiempo total dedicado
                     </label>
                     <input
                       type="text"
+                      name="timeSpent"
                       placeholder="Ej: 2 horas, 30 minutos"
                       className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
                       value={completionDetails.timeSpent}
-                      onChange={(e) => setCompletionDetails(prev => ({ ...prev, timeSpent: e.target.value }))}
+                      onChange={handleCompletionDetailsChange}
                     />
+                  </div>
+                  
+                  <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-green-400 mb-3">Estado del entregable</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="sentToQA"
+                            name="sentToQA"
+                            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
+                            checked={completionDetails.sentToQA}
+                            onChange={handleCheckboxChange}
+                          />
+                          <label htmlFor="sentToQA" className="ml-2 text-sm font-medium text-gray-200">
+                            Enviado a QA
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id="deployedToProduction"
+                            name="deployedToProduction"
+                            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
+                            checked={completionDetails.deployedToProduction}
+                            onChange={handleCheckboxChange}
+                          />
+                          <label htmlFor="deployedToProduction" className="ml-2 text-sm font-medium text-gray-200">
+                            Desplegado a Producción
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                     
-                    <div className="mt-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                      <div className="flex items-center text-xs text-gray-400">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>Formatos válidos: "2 horas", "45 minutos", "1.5 horas", etc.</span>
+                    <div>
+                      <h4 className="text-sm font-medium text-green-400 mb-3">Herramientas utilizadas</h4>
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {availableTools.map(tool => (
+                          <button
+                            key={tool}
+                            type="button"
+                            onClick={() => handleToolSelection(tool)}
+                            className={`py-1 px-2 rounded-full text-xs font-medium transition-colors ${
+                              completionDetails.tools.includes(tool)
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                          >
+                            {tool}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Otra herramienta..."
+                          className="flex-1 bg-gray-700 text-white rounded-lg p-2 text-sm border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                          value={newTool}
+                          onChange={(e) => setNewTool(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddNewTool()}
+                        />
+                        <button
+                          onClick={handleAddNewTool}
+                          disabled={!newTool.trim()}
+                          className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white p-2 rounded-lg"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1203,6 +1421,96 @@ function App() {
                     <div className="flex items-center">
                       <CheckCircle className="h-4 w-4 mr-1" />
                       Completar Tarea
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Progress Modal */}
+      {showProgressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
+            <div className="flex flex-col">
+              {/* Cabecera */}
+              <div className="bg-gradient-to-r from-purple-800 to-indigo-900 p-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">Registrar Progreso Diario</h3>
+                  <button 
+                    onClick={() => {
+                      setShowProgressModal(false);
+                      setSelectedTaskForProgress(null);
+                    }}
+                    className="text-gray-200 hover:text-white transition-colors"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="mt-2 text-sm text-purple-200">
+                  {selectedTaskForProgress && 
+                    tasks.find(t => t.id === selectedTaskForProgress)?.description}
+                </div>
+              </div>
+              
+              {/* Formulario */}
+              <div className="p-6">
+                <div className="space-y-5">
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-purple-400 mb-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      ¿Qué avances se lograron hoy?
+                    </label>
+                    <textarea
+                      placeholder="Describe los avances realizados en esta tarea..."
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors resize-none h-32"
+                      value={progressDetails.description}
+                      onChange={(e) => setProgressDetails(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-purple-400 mb-2">
+                      <Clock4 className="h-4 w-4 mr-2" />
+                      Tiempo dedicado hoy
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: 2 horas, 30 minutos"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                      value={progressDetails.timeSpent}
+                      onChange={(e) => setProgressDetails(prev => ({ ...prev, timeSpent: e.target.value }))}
+                    />
+                    
+                    <div className="mt-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                      <div className="flex items-center text-xs text-gray-400">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>Formatos válidos: "2 horas", "45 minutos", "1.5 horas", etc.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                  <button
+                    onClick={() => {
+                      setShowProgressModal(false);
+                      setSelectedTaskForProgress(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAddProgress}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-lg shadow-lg transition-colors"
+                    disabled={!progressDetails.description.trim() || !progressDetails.timeSpent.trim()}
+                  >
+                    <div className="flex items-center">
+                      <Clock4 className="h-4 w-4 mr-1" />
+                      Registrar Progreso
                     </div>
                   </button>
                 </div>

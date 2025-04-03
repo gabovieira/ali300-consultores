@@ -11,7 +11,8 @@ import {
   where,
   serverTimestamp,
   Timestamp,
-  Firestore
+  Firestore,
+  arrayUnion
 } from 'firebase/firestore';
 
 // Tipos
@@ -27,19 +28,35 @@ export interface Requirement {
   userId: string; // ID del usuario propietario del requerimiento
 }
 
+export interface CompletionDetails {
+  description: string;
+  timeSpent: string;
+  completedAt: Date;
+  // Nuevos campos para detalles de completado
+  sentToQA?: boolean;
+  deployedToProduction?: boolean;
+  tools?: string[];
+}
+
+export interface ProgressEntry {
+  date: Date;
+  description: string;
+  timeSpent: string;
+  createdAt: Date;
+}
+
 export interface Task {
   id?: string;
   description: string;
-  status: 'pending' | 'completed' | 'in-progress';
+  status: 'pending' | 'in-progress' | 'completed';
   type: 'UI' | 'validación' | 'funcionalidad';
   priority: 'alta' | 'media' | 'baja';
-  feedback?: string;
+  feedback: string;
   requirementId: string;
-  completionDetails?: {
-    description: string;
-    timeSpent: string;
-    completedAt: Date | Timestamp;
-  };
+  createdAt?: Date;
+  updatedAt?: Date;
+  completionDetails?: CompletionDetails;
+  progress?: ProgressEntry[]; // Historial de progreso diario
 }
 
 // Colecciones
@@ -231,6 +248,33 @@ export const requirementsService = {
     } catch (error) {
       return handleFirestoreError(`eliminar requisito ${id}`, error);
     }
+  },
+
+  // Completar un requisito
+  complete: async (
+    reqId: string,
+    completionInfo?: {
+      sentToQA?: boolean;
+      deployedToProduction?: boolean;
+      tools?: string[];
+    }
+  ): Promise<void> => {
+    try {
+      const reqRef = doc(db, REQUIREMENTS_COLLECTION, reqId);
+      
+      await updateDoc(reqRef, {
+        status: 'completed',
+        completedAt: new Date(),
+        sentToQA: completionInfo?.sentToQA || false,
+        deployedToProduction: completionInfo?.deployedToProduction || false,
+        tools: completionInfo?.tools || [],
+        updatedAt: new Date()
+      });
+      
+    } catch (error) {
+      console.error('Error al completar el requerimiento:', error);
+      throw error;
+    }
   }
 };
 
@@ -373,6 +417,86 @@ export const tasksService = {
       await deleteDoc(docRef);
     } catch (error) {
       return handleFirestoreError(`eliminar tarea ${id}`, error);
+    }
+  },
+
+  // Completar una tarea
+  completeTask: async (
+    taskId: string, 
+    details: { 
+      description: string; 
+      timeSpent: string;
+      sentToQA?: boolean;
+      deployedToProduction?: boolean;
+      tools?: string[];
+    }
+  ): Promise<void> => {
+    try {
+      const taskRef = doc(db, 'tasks', taskId);
+      const completionDetails = {
+        description: details.description,
+        timeSpent: details.timeSpent,
+        completedAt: new Date(),
+        sentToQA: details.sentToQA || false,
+        deployedToProduction: details.deployedToProduction || false,
+        tools: details.tools || []
+      };
+      
+      await updateDoc(taskRef, {
+        status: 'completed',
+        completionDetails,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error al completar la tarea:', error);
+      throw error;
+    }
+  },
+
+  // Añadir progreso diario a una tarea
+  addTaskProgress: async (
+    taskId: string,
+    progressDetails: {
+      description: string;
+      timeSpent: string;
+    }
+  ): Promise<void> => {
+    try {
+      const taskRef = doc(db, 'tasks', taskId);
+      const taskDoc = await getDoc(taskRef);
+      
+      if (!taskDoc.exists()) {
+        throw new Error('La tarea no existe');
+      }
+      
+      // Si la tarea está en estado pendiente, cambiarla a en-progreso
+      if (taskDoc.data().status === 'pending') {
+        await updateDoc(taskRef, {
+          status: 'in-progress',
+          updatedAt: new Date()
+        });
+      }
+      
+      // Crear nueva entrada de progreso
+      const newProgress: ProgressEntry = {
+        date: new Date(),
+        description: progressDetails.description,
+        timeSpent: progressDetails.timeSpent,
+        createdAt: new Date()
+      };
+      
+      // Obtener progreso actual o inicializar un arreglo vacío
+      const currentProgress = taskDoc.data().progress || [];
+      
+      // Actualizar el documento con la nueva entrada de progreso
+      await updateDoc(taskRef, {
+        progress: arrayUnion(newProgress),
+        updatedAt: new Date()
+      });
+      
+    } catch (error) {
+      console.error('Error al añadir progreso a la tarea:', error);
+      throw error;
     }
   }
 }; 
