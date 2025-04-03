@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 interface DataContextType {
   requirements: Requirement[];
   tasks: Task[];
+  allTasks: Task[]; // Todas las tareas sin filtrar por requerimiento
   selectedRequirement: string | null;
   loading: boolean;
   error: string | null;
@@ -30,6 +31,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { currentUser, signOut } = useAuth();
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [selectedRequirement, setSelectedRequirementId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!currentUser) {
         setRequirements([]);
         setTasks([]);
+        setAllTasks([]);
         setSelectedRequirementId(null);
         setLoading(false);
         return;
@@ -71,13 +74,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             );
             console.log('Tareas cargadas para el usuario:', userTasks.length);
             setTasks(userTasks);
+            setAllTasks(tasksData);
           } catch (taskError) {
             console.error('Error al cargar tareas:', taskError);
             // Si hay error al cargar tareas, seguimos con la app pero con lista de tareas vacía
             setTasks([]);
+            setAllTasks([]);
           }
         } else {
           setTasks([]);
+          setAllTasks([]);
         }
         
         setLoading(false);
@@ -111,11 +117,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Cargar tareas cuando cambia el requisito seleccionado
   useEffect(() => {
     const loadTasks = async () => {
-      if (selectedRequirement && currentUser) {
+      if (currentUser) {
         try {
           setLoading(true);
-          const tasksData = await tasksService.getByRequirementId(selectedRequirement);
-          setTasks(tasksData);
+          
+          // Cargar todas las tareas para el usuario
+          const allTasksData = await tasksService.getAll();
+          const userTasks = allTasksData.filter(task => 
+            requirements.some(req => req.id === task.requirementId)
+          );
+          setAllTasks(userTasks);
+          
+          // Cargar tareas específicas para el requerimiento seleccionado
+          if (selectedRequirement) {
+            const filteredTasks = userTasks.filter(task => task.requirementId === selectedRequirement);
+            setTasks(filteredTasks);
+          } else if (requirements.length > 0) {
+            // Si no hay requerimiento seleccionado pero hay requerimientos, mostrar el primero
+            const firstReqId = requirements[0].id;
+            if (firstReqId) {
+              setSelectedRequirementId(firstReqId);
+              const filteredTasks = userTasks.filter(task => task.requirementId === firstReqId);
+              setTasks(filteredTasks);
+            }
+          } else {
+            setTasks([]);
+          }
+          
           setLoading(false);
         } catch (err) {
           console.error('Error al cargar las tareas:', err);
@@ -126,7 +154,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadTasks();
-  }, [selectedRequirement, currentUser]);
+  }, [selectedRequirement, currentUser, requirements]);
 
   const setSelectedRequirement = (id: string) => {
     setSelectedRequirementId(id);
@@ -262,23 +290,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Funciones para Tasks
   const addTask = async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date) => {
-    try {
-      // Crear objeto con fecha personalizada si se proporciona
-      const taskData = {
-        ...data,
-        createdAt: customDate || new Date()
-      };
+    if (!currentUser) {
+      setError('Debes iniciar sesión para crear una tarea');
+      return null;
+    }
 
-      const newId = await tasksService.create(taskData);
-      const newTask: Task = {
-        id: newId,
-        ...data,
-        createdAt: taskData.createdAt
-      };
-      setTasks([...tasks, newTask]);
-      return newId;
+    try {
+      const newTask = await tasksService.create(data, customDate);
+      // Actualizar la lista de tareas para el requerimiento seleccionado
+      if (newTask.requirementId === selectedRequirement) {
+        setTasks([...tasks, newTask]);
+      }
+      // Actualizar la lista de todas las tareas
+      setAllTasks([...allTasks, newTask]);
+      return newTask.id || null;
     } catch (err) {
-      console.error('Error al crear tarea:', err);
+      console.error('Error al crear la tarea:', err);
       setError('Error al crear la tarea. Por favor, intenta de nuevo.');
       return null;
     }
@@ -286,11 +313,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateTaskStatus = async (id: string, status: Task['status']) => {
     try {
-      await tasksService.update(id, { status });
-      setTasks(tasks.map(task => (task.id === id ? { ...task, status } : task)));
+      await tasksService.updateStatus(id, status);
+      
+      // Actualizar la lista de tareas para el requerimiento seleccionado
+      const updatedTasks = tasks.map(task => 
+        task.id === id ? { ...task, status, updatedAt: new Date() } : task
+      );
+      setTasks(updatedTasks);
+      
+      // Actualizar la lista de todas las tareas
+      const updatedAllTasks = allTasks.map(task => 
+        task.id === id ? { ...task, status, updatedAt: new Date() } : task
+      );
+      setAllTasks(updatedAllTasks);
     } catch (err) {
-      console.error('Error al actualizar estado de tarea:', err);
-      setError('Error al actualizar la tarea. Por favor, intenta de nuevo.');
+      console.error('Error al actualizar el estado de la tarea:', err);
+      setError('Error al actualizar el estado de la tarea. Por favor, intenta de nuevo.');
     }
   };
 
@@ -305,40 +343,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     customDate?: Date
   ) => {
-    setLoading(true);
-    setError(null);
     try {
-      await tasksService.completeTask(id, {
-        ...details,
-        completedAt: customDate || new Date()
+      const completionDate = customDate || new Date();
+      await tasksService.complete(id, {
+        description: details.description,
+        timeSpent: details.timeSpent,
+        sentToQA: details.sentToQA || false,
+        deployedToProduction: details.deployedToProduction || false,
+        tools: details.tools || [],
+        completedAt: completionDate
       });
-      setTasks(prevTasks => prevTasks.map(task => 
+      
+      // Actualizar la lista de tareas para el requerimiento seleccionado
+      const updatedTasks = tasks.map(task => 
         task.id === id ? { 
           ...task, 
-          status: 'completed',
+          status: 'completed', 
+          updatedAt: new Date(),
           completionDetails: {
             description: details.description,
             timeSpent: details.timeSpent,
-            completedAt: customDate || new Date(),
             sentToQA: details.sentToQA || false,
             deployedToProduction: details.deployedToProduction || false,
-            tools: details.tools || []
-          } 
+            tools: details.tools || [],
+            completedAt: completionDate
+          }
         } : task
-      ));
-    } catch (error) {
-      setError(`Error al completar la tarea: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    } finally {
-      setLoading(false);
+      );
+      setTasks(updatedTasks);
+      
+      // Actualizar la lista de todas las tareas
+      const updatedAllTasks = allTasks.map(task => 
+        task.id === id ? { 
+          ...task, 
+          status: 'completed', 
+          updatedAt: new Date(),
+          completionDetails: {
+            description: details.description,
+            timeSpent: details.timeSpent,
+            sentToQA: details.sentToQA || false,
+            deployedToProduction: details.deployedToProduction || false,
+            tools: details.tools || [],
+            completedAt: completionDate
+          }
+        } : task
+      );
+      setAllTasks(updatedAllTasks);
+    } catch (err) {
+      console.error('Error al completar la tarea:', err);
+      setError('Error al completar la tarea. Por favor, intenta de nuevo.');
     }
   };
 
   const deleteTask = async (id: string) => {
     try {
-      await tasksService.delete(id);
+      await tasksService.remove(id);
+      
+      // Actualizar la lista de tareas para el requerimiento seleccionado
       setTasks(tasks.filter(task => task.id !== id));
+      
+      // Actualizar la lista de todas las tareas
+      setAllTasks(allTasks.filter(task => task.id !== id));
     } catch (err) {
-      console.error('Error al eliminar tarea:', err);
+      console.error('Error al eliminar la tarea:', err);
       setError('Error al eliminar la tarea. Por favor, intenta de nuevo.');
     }
   };
@@ -352,45 +419,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     customDate?: Date
   ) => {
-    setLoading(true);
-    setError(null);
     try {
       await tasksService.addTaskProgress(id, progressDetails, customDate);
       
-      // Buscar la tarea en el estado local
-      const taskIndex = tasks.findIndex(task => task.id === id);
-      if (taskIndex !== -1) {
-        // Crear una copia del arreglo de tareas
-        const updatedTasks = [...tasks];
-        
-        // Actualizar la tarea específica
-        const task = updatedTasks[taskIndex];
-        
-        // Crear la nueva entrada de progreso
-        const newProgress: ProgressEntry = {
-          date: customDate || new Date(),
-          description: progressDetails.description,
-          timeSpent: progressDetails.timeSpent,
-          createdAt: new Date()
-        };
-        
-        // Añadir la nueva entrada al progreso existente o crear un nuevo arreglo
-        const progress = task.progress ? [...task.progress, newProgress] : [newProgress];
-        
-        // Actualizar la tarea
-        updatedTasks[taskIndex] = {
-          ...task,
-          status: 'in-progress',
-          progress
-        };
-        
-        // Actualizar el estado
-        setTasks(updatedTasks);
-      }
-    } catch (error) {
-      setError(`Error al añadir progreso a la tarea: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    } finally {
-      setLoading(false);
+      const progressDate = customDate || new Date();
+      const newProgressEntry: ProgressEntry = {
+        date: progressDate,
+        description: progressDetails.description,
+        timeSpent: progressDetails.timeSpent,
+        createdAt: new Date()
+      };
+      
+      // Actualizar la lista de tareas para el requerimiento seleccionado
+      const updatedTasks = tasks.map(task => {
+        if (task.id === id) {
+          // Si la tarea ya tiene avances, añadir el nuevo
+          if (task.progress && Array.isArray(task.progress)) {
+            return {
+              ...task,
+              status: 'in-progress',
+              progress: [...task.progress, newProgressEntry],
+              updatedAt: new Date()
+            };
+          } else {
+            // Si no tiene avances, inicializar el array
+            return {
+              ...task,
+              status: 'in-progress',
+              progress: [newProgressEntry],
+              updatedAt: new Date()
+            };
+          }
+        }
+        return task;
+      });
+      setTasks(updatedTasks);
+      
+      // Actualizar la lista de todas las tareas
+      const updatedAllTasks = allTasks.map(task => {
+        if (task.id === id) {
+          // Si la tarea ya tiene avances, añadir el nuevo
+          if (task.progress && Array.isArray(task.progress)) {
+            return {
+              ...task,
+              status: 'in-progress',
+              progress: [...task.progress, newProgressEntry],
+              updatedAt: new Date()
+            };
+          } else {
+            // Si no tiene avances, inicializar el array
+            return {
+              ...task,
+              status: 'in-progress',
+              progress: [newProgressEntry],
+              updatedAt: new Date()
+            };
+          }
+        }
+        return task;
+      });
+      setAllTasks(updatedAllTasks);
+    } catch (err) {
+      console.error('Error al añadir progreso a la tarea:', err);
+      setError('Error al añadir progreso a la tarea. Por favor, intenta de nuevo.');
     }
   };
 
@@ -429,6 +520,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: DataContextType = {
     requirements,
     tasks,
+    allTasks,
     selectedRequirement,
     loading,
     error,

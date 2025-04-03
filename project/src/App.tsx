@@ -42,6 +42,7 @@ function App() {
   const { 
     requirements, 
     tasks, 
+    allTasks,
     selectedRequirement,
     loading,
     error,
@@ -757,7 +758,7 @@ function App() {
                 <div className="order-1 lg:order-2 mb-3 lg:mb-0">
                   <WorkTimeTracker
                     selectedDate={selectedDate}
-                    tasks={tasks}
+                    tasks={allTasks} // Ahora pasamos todas las tareas sin filtrar
                     requirements={requirements}
                   />
                 </div>
