@@ -27,6 +27,7 @@ export interface UserData {
 }
 
 export interface AuthUser {
+  id: string;
   uid: string;
   email: string | null;
   displayName: string | null;
@@ -72,7 +73,8 @@ const formatUser = async (user: User): Promise<AuthUser> => {
   const authUser: AuthUser = {
     uid: user.uid,
     email: user.email,
-    displayName: user.displayName
+    displayName: user.displayName,
+    id: ''
   };
   
   // Intentar obtener datos adicionales del usuario desde Firestore

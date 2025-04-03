@@ -1,10 +1,9 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState } from 'react';
 import { 
   ClipboardList, 
   CheckCircle, 
   XCircle, 
   Clock, 
-  Settings, 
   AlignLeft, 
   Tag, 
   BarChart, 
