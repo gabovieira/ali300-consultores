@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, Check, Calendar, Briefcase, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Check, Calendar, Briefcase, BookOpen, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react';
 import { Task, Requirement } from '../services/databaseService';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
@@ -399,6 +399,81 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
           ) : (
             <div className="bg-gray-700/70 rounded-lg p-2 sm:p-3 text-center text-gray-400 text-xs sm:text-sm">
               No hay actividad registrada para esta fecha
+            </div>
+          )}
+
+          {/* Sección de Adiestramiento */}
+          {currentUser?.userData?.adiestramiento && visibleTasks.length > 0 && (
+            <div className="mt-4 bg-gradient-to-r from-purple-900/70 to-indigo-900/70 rounded-lg p-3">
+              <div className="flex items-center mb-2">
+                <GraduationCap className="h-4 w-4 mr-2 text-purple-400" />
+                <h4 className="text-purple-300 text-sm font-medium">Adiestramiento Relacionado</h4>
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-lg p-2.5 text-xs">
+                <p className="text-gray-300 mb-2">
+                  Se recibió adiestramiento para realizar las siguientes actividades:
+                </p>
+                
+                <div className="space-y-2">
+                  {visibleTasks.map(task => {
+                    const requirement = requirements.find(r => r.id === task.requirementId);
+                    const taskTimeSpent = task.status === 'completed' 
+                      ? task.completionDetails?.timeSpent 
+                      : task.progress?.find(p => 
+                          new Date(p.date instanceof Timestamp 
+                            ? p.date.toDate() 
+                            : p.date).toDateString() === selectedDate.toDateString()
+                        )?.timeSpent || "0 horas";
+                    
+                    // Extraer el número de horas del texto "X horas"
+                    const hoursMatch = taskTimeSpent ? taskTimeSpent.match(/(\d+(\.\d+)?)/): null;
+                    const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+                    
+                    // Calcular el tiempo de adiestramiento (10% del tiempo de la tarea)
+                    const adiestramientoHours = (hours * 0.1).toFixed(1);
+                    
+                    return (
+                      <div key={`training-${task.id}`} className="border-l-2 border-purple-500 pl-2">
+                        <p className="text-white font-medium">
+                          {requirement?.tipo}: {requirement?.name}
+                        </p>
+                        <p className="text-gray-400">
+                          Tarea: {task.description}
+                        </p>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-purple-300">
+                            Tiempo de actividad: {taskTimeSpent}
+                          </span>
+                          <span className="text-purple-300 font-medium">
+                            Adiestramiento: {adiestramientoHours} horas
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Total de adiestramiento */}
+                  <div className="mt-3 pt-2 border-t border-gray-700 flex justify-between">
+                    <span className="text-white">Total adiestramiento:</span>
+                    <span className="text-white font-bold">
+                      {visibleTasks.reduce((total, task) => {
+                        const taskTimeSpent = task.status === 'completed' 
+                          ? task.completionDetails?.timeSpent 
+                          : task.progress?.find(p => 
+                              new Date(p.date instanceof Timestamp 
+                                ? p.date.toDate() 
+                                : p.date).toDateString() === selectedDate.toDateString()
+                            )?.timeSpent || "0 horas";
+                        
+                        const hoursMatch = taskTimeSpent ? taskTimeSpent.match(/(\d+(\.\d+)?)/): null;
+                        const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+                        return total + (hours * 0.1);
+                      }, 0).toFixed(1)} horas
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
