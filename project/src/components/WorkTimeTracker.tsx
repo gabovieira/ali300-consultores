@@ -481,7 +481,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                     // Si es tarea completada, usamos su información de completado
                     if (task.status === 'completed' && task.completionDetails) {
                       const timeSpent = task.completionDetails.timeSpent;
-                      const hoursPerActivity = dailyTrainingHours;
+                      const hoursPerActivity = dailyTrainingHours / allActivityTasks.length;
                       
                       // Formatear el tiempo de adiestramiento
                       let adiestramientoDisplay = '';
