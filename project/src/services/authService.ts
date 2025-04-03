@@ -11,11 +11,19 @@ import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // Interfaces
 export interface UserData {
+  fullName?: string;
+  documentId?: string;
+  age?: number;
   developerLevel?: string;
   company?: string;
   area?: string;
   adiestramiento?: boolean;
   horasAdiestramiento?: number;
+  profilePhotoURL?: string;
+  cvURL?: string;
+  phone?: string;
+  position?: string;
+  startDate?: Date | string;
 }
 
 export interface AuthUser {
@@ -72,15 +80,21 @@ const formatUser = async (user: User): Promise<AuthUser> => {
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     if (userDoc.exists()) {
       const userData = userDoc.data();
-      if (userData.developerLevel || userData.company || userData.area) {
-        authUser.userData = {
-          developerLevel: userData.developerLevel,
-          company: userData.company,
-          area: userData.area,
-          adiestramiento: userData.adiestramiento || false,
-          horasAdiestramiento: userData.horasAdiestramiento || 0
-        };
-      }
+      authUser.userData = {
+        fullName: userData.fullName,
+        documentId: userData.documentId,
+        age: userData.age,
+        developerLevel: userData.developerLevel,
+        company: userData.company,
+        area: userData.area,
+        adiestramiento: userData.adiestramiento || false,
+        horasAdiestramiento: userData.horasAdiestramiento || 0,
+        profilePhotoURL: userData.profilePhotoURL,
+        cvURL: userData.cvURL,
+        phone: userData.phone,
+        position: userData.position,
+        startDate: userData.startDate
+      };
     }
   } catch (err) {
     console.error('Error al obtener datos adicionales del usuario:', err);
@@ -118,11 +132,19 @@ export const authService = {
           createdAt: new Date(),
           // Agregar datos adicionales
           ...(data.userData && {
+            fullName: data.userData.fullName,
+            documentId: data.userData.documentId,
+            age: data.userData.age,
+            phone: data.userData.phone,
             developerLevel: data.userData.developerLevel,
             company: data.userData.company,
             area: data.userData.area,
+            position: data.userData.position,
+            startDate: data.userData.startDate,
             adiestramiento: data.userData.adiestramiento,
-            horasAdiestramiento: data.userData.horasAdiestramiento
+            horasAdiestramiento: data.userData.horasAdiestramiento,
+            profilePhotoURL: data.userData.profilePhotoURL,
+            cvURL: data.userData.cvURL
           })
         };
         
