@@ -198,13 +198,23 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
       return;
     }
     
-    // Mostrar todas las actividades del día independientemente del requerimiento seleccionado
-    setVisibleTasks(allActivityTasks);
-  }, [allActivityTasks]);
+    // En lugar de mostrar todas las tareas a la vez, mostraremos solo la tarea actual
+    setVisibleTasks([allActivityTasks[currentTaskIndex]]);
+  }, [allActivityTasks, currentTaskIndex]);
 
-  // Para la navegación, simplemente no hacemos nada ya que mostraremos todas las actividades
-  const goToPreviousTask = () => {};
-  const goToNextTask = () => {};
+  // Navegar a la tarea anterior
+  const goToPreviousTask = () => {
+    if (currentTaskIndex > 0) {
+      setCurrentTaskIndex(currentTaskIndex - 1);
+    }
+  };
+
+  // Navegar a la siguiente tarea
+  const goToNextTask = () => {
+    if (currentTaskIndex < allActivityTasks.length - 1) {
+      setCurrentTaskIndex(currentTaskIndex + 1);
+    }
+  };
 
   return (
     <div className="bg-gray-800 rounded-lg p-3 sm:p-4 shadow-md border border-gray-700">
@@ -308,6 +318,36 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                 Actividad del Día ({allActivityTasks.length})
               </h4>
             </div>
+            
+            {allActivityTasks.length > 0 && (
+              <div className="flex items-center gap-1 sm:gap-2">
+                <button
+                  onClick={goToPreviousTask}
+                  disabled={currentTaskIndex === 0}
+                  className={`p-1 rounded-full ${
+                    currentTaskIndex === 0
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <span className="text-gray-400 text-xs sm:text-sm">
+                  {currentTaskIndex + 1} / {allActivityTasks.length}
+                </span>
+                <button
+                  onClick={goToNextTask}
+                  disabled={currentTaskIndex === allActivityTasks.length - 1}
+                  className={`p-1 rounded-full ${
+                    currentTaskIndex === allActivityTasks.length - 1
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {visibleTasks.length > 0 ? (
@@ -411,7 +451,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
           )}
 
           {/* Sección de Adiestramiento */}
-          {currentUser?.userData?.adiestramiento && allActivityTasks.length > 0 && (
+          {currentUser?.userData?.adiestramiento && visibleTasks.length > 0 && (
             <div className="mt-4 bg-gradient-to-r from-purple-900/70 to-indigo-900/70 rounded-lg p-3">
               <div className="flex items-center mb-2">
                 <GraduationCap className="h-4 w-4 mr-2 text-purple-400" />
@@ -424,7 +464,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                 </p>
                 
                 <div className="space-y-2">
-                  {allActivityTasks.map(task => {
+                  {visibleTasks.map(task => {
                     const requirement = requirements.find(r => r.id === task.requirementId);
                     
                     // Ahora vamos a mostrar cada avance individualmente para la tarea visible
