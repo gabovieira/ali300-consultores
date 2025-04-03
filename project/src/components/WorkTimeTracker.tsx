@@ -141,24 +141,31 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
 
   // Calcular el número total de actividades para el cálculo de adiestramiento
   const totalDailyActivities = allActivityTasks.reduce((total, task) => {
+    let taskActivities = 0;
+    
     // Si la tarea está completada, cuenta como 1 actividad
     if (task.status === 'completed') {
-      return total + 1;
+      taskActivities = 1;
+    } else {
+      // Si tiene avances hoy, contar cada avance como una actividad separada
+      const todaysProgressCount = task.progress?.filter(entry => {
+        const entryDate = entry.date instanceof Timestamp 
+          ? entry.date.toDate() 
+          : entry.date instanceof Date
+            ? entry.date
+            : new Date(entry.date);
+        
+        return entryDate.toDateString() === selectedDate.toDateString();
+      }).length || 0;
+      
+      taskActivities = todaysProgressCount;
     }
     
-    // Si tiene avances hoy, contar cada avance como una actividad separada
-    const todaysProgressCount = task.progress?.filter(entry => {
-      const entryDate = entry.date instanceof Timestamp 
-        ? entry.date.toDate() 
-        : entry.date instanceof Date
-          ? entry.date
-          : new Date(entry.date);
-      
-      return entryDate.toDateString() === selectedDate.toDateString();
-    }).length || 0;
-    
-    return total + todaysProgressCount;
+    console.log(`Tarea ${task.description}: ${taskActivities} actividades`);
+    return total + taskActivities;
   }, 0);
+  
+  console.log(`Total actividades diarias: ${totalDailyActivities}`);
   
   // Verificar si el usuario es trainee y tiene horas de adiestramiento
   const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
