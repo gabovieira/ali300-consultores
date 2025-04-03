@@ -877,81 +877,118 @@ function App() {
 
       {/* New Requirement Modal */}
       {showNewRequirementModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Nuevo Requerimiento</h3>
-            
-            <div className="space-y-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Tipo de Requerimiento</label>
-                <select
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={newRequirement.tipo}
-                  onChange={(e) => setNewRequirement({ ...newRequirement, tipo: e.target.value as 'AJU' | 'INC' | 'PRC' | 'PRO' | 'REN' | 'REQ' })}
-                >
-                  <option value="AJU">AJUSTE</option>
-                  <option value="INC">INCIDENCIA</option>
-                  <option value="PRC">PROCESOS</option>
-                  <option value="PRO">PROYECTO</option>
-                  <option value="REN">REUNION</option>
-                  <option value="REQ">REQUERIMIENTO</option>
-                </select>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
+            <div className="flex flex-col">
+              {/* Cabecera */}
+              <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">Nuevo Requerimiento</h3>
+                  <button 
+                    onClick={() => setShowNewRequirementModal(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Descripción</label>
-            <input
-              type="text"
-                  placeholder="Descripción del requerimiento"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-              value={newRequirement.name}
-                  onChange={(e) => setNewRequirement({ ...newRequirement, name: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center mb-2">
-                  <input
-                    type="checkbox"
-                    id="tieneEstimacion"
-                    className="mr-2 h-4 w-4 rounded bg-gray-700 border-gray-600"
-                    checked={newRequirement.tieneEstimacion}
-                    onChange={(e) => setNewRequirement({ ...newRequirement, tieneEstimacion: e.target.checked })}
-                  />
-                  <label htmlFor="tieneEstimacion" className="text-sm font-medium text-gray-400">
-                    Tiene tiempo estimado
-                  </label>
-                </div>
-                
-                {newRequirement.tieneEstimacion && (
+              {/* Formulario */}
+              <div className="p-6">
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Tiempo Estimado</label>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Tipo de Requerimiento
+                    </label>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {[
+                        {value: 'REQ', label: 'REQUERIMIENTO'},
+                        {value: 'INC', label: 'INCIDENCIA'},
+                        {value: 'AJU', label: 'AJUSTE'},
+                        {value: 'PRC', label: 'PROCESOS'},
+                        {value: 'PRO', label: 'PROYECTO'},
+                        {value: 'REN', label: 'REUNION'}
+                      ].map((tipo) => (
+                        <button
+                          key={tipo.value}
+                          type="button"
+                          className={`py-2 px-1 md:px-2 rounded-lg text-xs font-medium border transition-all ${
+                            newRequirement.tipo === tipo.value 
+                              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-transparent' 
+                              : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                          }`}
+                          onClick={() => setNewRequirement({ ...newRequirement, tipo: tipo.value as any })}
+                        >
+                          {tipo.value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Descripción
+                    </label>
                     <input
                       type="text"
-                      placeholder="Ej: 2 horas, 3 días"
-                      className="w-full bg-gray-700 text-white rounded-lg p-2"
-                      value={newRequirement.tiempoEstimado}
-                      onChange={(e) => setNewRequirement({ ...newRequirement, tiempoEstimado: e.target.value })}
+                      placeholder="Descripción del requerimiento"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                      value={newRequirement.name}
+                      onChange={(e) => setNewRequirement({ ...newRequirement, name: e.target.value })}
                     />
                   </div>
-                )}
+
+                  <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        id="tieneEstimacion"
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                        checked={newRequirement.tieneEstimacion}
+                        onChange={(e) => setNewRequirement({ ...newRequirement, tieneEstimacion: e.target.checked })}
+                      />
+                      <label htmlFor="tieneEstimacion" className="ml-2 text-sm font-medium text-gray-200 flex items-center">
+                        <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                        Tiene tiempo estimado
+                      </label>
+                    </div>
+                    
+                    {newRequirement.tieneEstimacion && (
+                      <div className="ml-6">
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Tiempo Estimado</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 2 horas, 3 días"
+                          className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={newRequirement.tiempoEstimado}
+                          onChange={(e) => setNewRequirement({ ...newRequirement, tiempoEstimado: e.target.value })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                  <button
+                    onClick={() => setShowNewRequirementModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAddNewRequirement}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-lg shadow-lg transition-colors"
+                    disabled={!newRequirement.name.trim() || (newRequirement.tieneEstimacion && !newRequirement.tiempoEstimado.trim())}
+                  >
+                    <div className="flex items-center">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Crear Requerimiento
+                    </div>
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowNewRequirementModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleAddNewRequirement}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg"
-                disabled={!newRequirement.name.trim() || (newRequirement.tieneEstimacion && !newRequirement.tiempoEstimado.trim())}
-              >
-                Crear
-              </button>
             </div>
           </div>
         </div>
@@ -959,68 +996,127 @@ function App() {
 
       {/* New Task Modal */}
       {showNewTaskModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Nueva Tarea</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Descripción</label>
-                <input
-                  type="text"
-                  placeholder="Descripción de la tarea"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                />
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
+            <div className="flex flex-col">
+              {/* Cabecera */}
+              <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">Nueva Tarea</h3>
+                  <button 
+                    onClick={() => setShowNewTaskModal(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="mt-2 text-sm text-gray-400">
+                  Requerimiento: {requirements.find(r => r.id === selectedRequirement)?.name || 'Desconocido'}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Tipo</label>
-                <select
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={newTask.type}
-                  onChange={(e) => setNewTask({ ...newTask, type: e.target.value as Task['type'] })}
-                >
-                  <option value="UI">UI</option>
-                  <option value="validación">Validación</option>
-                  <option value="funcionalidad">Funcionalidad</option>
-                </select>
+              
+              {/* Formulario */}
+              <div className="p-6">
+                <div className="space-y-5">
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <ListTodo className="h-4 w-4 mr-2" />
+                      Descripción
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Descripción detallada de la tarea"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                      value={newTask.description}
+                      onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Tipo
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {['UI', 'validación', 'funcionalidad'].map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`py-2 px-1 rounded-lg text-xs font-medium border transition-all ${
+                              newTask.type === type 
+                                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-transparent' 
+                                : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                            }`}
+                            onClick={() => setNewTask({ ...newTask, type: type as Task['type'] })}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Prioridad
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          {value: 'baja', color: 'from-green-500 to-emerald-500'},
+                          {value: 'media', color: 'from-yellow-500 to-amber-500'},
+                          {value: 'alta', color: 'from-red-500 to-rose-500'}
+                        ].map((priority) => (
+                          <button
+                            key={priority.value}
+                            type="button"
+                            className={`py-2 px-1 rounded-lg text-xs font-medium border transition-all ${
+                              newTask.priority === priority.value 
+                                ? `bg-gradient-to-r ${priority.color} text-white border-transparent` 
+                                : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                            }`}
+                            onClick={() => setNewTask({ ...newTask, priority: priority.value as Task['priority'] })}
+                          >
+                            {priority.value.charAt(0).toUpperCase() + priority.value.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Comentarios
+                    </label>
+                    <textarea
+                      placeholder="Comentarios adicionales sobre la tarea"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors resize-none h-24"
+                      value={newTask.feedback}
+                      onChange={(e) => setNewTask({ ...newTask, feedback: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                  <button
+                    onClick={() => setShowNewTaskModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAddNewTask}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-lg shadow-lg transition-colors"
+                    disabled={!newTask.description.trim()}
+                  >
+                    <div className="flex items-center">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Crear Tarea
+                    </div>
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Prioridad</label>
-                <select
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={newTask.priority}
-                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as Task['priority'] })}
-                >
-                  <option value="baja">Baja</option>
-                  <option value="media">Media</option>
-                  <option value="alta">Alta</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Comentarios</label>
-                <textarea
-                  placeholder="Comentarios sobre la tarea"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={newTask.feedback}
-                  onChange={(e) => setNewTask({ ...newTask, feedback: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => setShowNewTaskModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleAddNewTask}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg"
-                disabled={!newTask.description.trim()}
-              >
-                Crear
-              </button>
             </div>
           </div>
         </div>
@@ -1028,51 +1124,89 @@ function App() {
 
       {/* Task Completion Modal */}
       {showCompletionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Detalles de Completado</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  ¿Cómo se completó?
-                </label>
-                <textarea
-                  placeholder="Describe cómo completaste la tarea..."
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={completionDetails.description}
-                  onChange={(e) => setCompletionDetails(prev => ({ ...prev, description: e.target.value }))}
-                />
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
+            <div className="flex flex-col">
+              {/* Cabecera */}
+              <div className="bg-gradient-to-r from-green-800 to-emerald-900 p-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">Completar Tarea</h3>
+                  <button 
+                    onClick={() => {
+                      setShowCompletionModal(false);
+                      setSelectedTaskForCompletion(null);
+                    }}
+                    className="text-gray-200 hover:text-white transition-colors"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="mt-2 text-sm text-green-200">
+                  {selectedTaskForCompletion && 
+                    tasks.find(t => t.id === selectedTaskForCompletion)?.description}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Tiempo dedicado
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: 2 horas, 30 minutos"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={completionDetails.timeSpent}
-                  onChange={(e) => setCompletionDetails(prev => ({ ...prev, timeSpent: e.target.value }))}
-                />
+              
+              {/* Formulario */}
+              <div className="p-6">
+                <div className="space-y-5">
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-green-400 mb-2">
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      ¿Cómo se completó?
+                    </label>
+                    <textarea
+                      placeholder="Describe cómo completaste la tarea y los detalles relevantes..."
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors resize-none h-32"
+                      value={completionDetails.description}
+                      onChange={(e) => setCompletionDetails(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-green-400 mb-2">
+                      <Clock4 className="h-4 w-4 mr-2" />
+                      Tiempo dedicado
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: 2 horas, 30 minutos"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
+                      value={completionDetails.timeSpent}
+                      onChange={(e) => setCompletionDetails(prev => ({ ...prev, timeSpent: e.target.value }))}
+                    />
+                    
+                    <div className="mt-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                      <div className="flex items-center text-xs text-gray-400">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>Formatos válidos: "2 horas", "45 minutos", "1.5 horas", etc.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                  <button
+                    onClick={() => {
+                      setShowCompletionModal(false);
+                      setSelectedTaskForCompletion(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleCompleteTask}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-lg shadow-lg transition-colors"
+                    disabled={!completionDetails.description.trim() || !completionDetails.timeSpent.trim()}
+                  >
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Completar Tarea
+                    </div>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setShowCompletionModal(false);
-                  setSelectedTaskForCompletion(null);
-                }}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCompleteTask}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-                disabled={!completionDetails.description.trim() || !completionDetails.timeSpent.trim()}
-              >
-                Completar Tarea
-              </button>
             </div>
           </div>
         </div>
@@ -1080,91 +1214,131 @@ function App() {
 
       {/* Edit Requirement Modal */}
       {showEditRequirementModal && requirementToEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Editar Requerimiento</h3>
-            
-            <div className="space-y-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Tipo de Requerimiento</label>
-                <select
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={requirementToEdit.tipo || 'REQ'}
-                  onChange={(e) => setRequirementToEdit({ 
-                    ...requirementToEdit, 
-                    tipo: e.target.value as 'AJU' | 'INC' | 'PRC' | 'PRO' | 'REN' | 'REQ' 
-                  })}
-                >
-                  <option value="AJU">AJUSTE</option>
-                  <option value="INC">INCIDENCIA</option>
-                  <option value="PRC">PROCESOS</option>
-                  <option value="PRO">PROYECTO</option>
-                  <option value="REN">REUNION</option>
-                  <option value="REQ">REQUERIMIENTO</option>
-                </select>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
+            <div className="flex flex-col">
+              {/* Cabecera */}
+              <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">Editar Requerimiento</h3>
+                  <button 
+                    onClick={() => {
+                      setShowEditRequirementModal(false);
+                      setRequirementToEdit(null);
+                    }}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Descripción</label>
-                <input
-                  type="text"
-                  placeholder="Descripción del requerimiento"
-                  className="w-full bg-gray-700 text-white rounded-lg p-2"
-                  value={requirementToEdit.name}
-                  onChange={(e) => setRequirementToEdit({ ...requirementToEdit, name: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center mb-2">
-                  <input
-                    type="checkbox"
-                    id="editTieneEstimacion"
-                    className="mr-2 h-4 w-4 rounded bg-gray-700 border-gray-600"
-                    checked={requirementToEdit.tieneEstimacion || false}
-                    onChange={(e) => setRequirementToEdit({ 
-                      ...requirementToEdit, 
-                      tieneEstimacion: e.target.checked,
-                      tiempoEstimado: e.target.checked ? requirementToEdit.tiempoEstimado || '' : undefined
-                    })}
-                  />
-                  <label htmlFor="editTieneEstimacion" className="text-sm font-medium text-gray-400">
-                    Tiene tiempo estimado
-                  </label>
-                </div>
-                
-                {requirementToEdit.tieneEstimacion && (
+              {/* Formulario */}
+              <div className="p-6">
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Tiempo Estimado</label>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      Tipo de Requerimiento
+                    </label>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {[
+                        {value: 'REQ', label: 'REQUERIMIENTO'},
+                        {value: 'INC', label: 'INCIDENCIA'},
+                        {value: 'AJU', label: 'AJUSTE'},
+                        {value: 'PRC', label: 'PROCESOS'},
+                        {value: 'PRO', label: 'PROYECTO'},
+                        {value: 'REN', label: 'REUNION'}
+                      ].map((tipo) => (
+                        <button
+                          key={tipo.value}
+                          type="button"
+                          className={`py-2 px-1 md:px-2 rounded-lg text-xs font-medium border transition-all ${
+                            requirementToEdit.tipo === tipo.value 
+                              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-transparent' 
+                              : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                          }`}
+                          onClick={() => setRequirementToEdit({ 
+                            ...requirementToEdit, 
+                            tipo: tipo.value as 'AJU' | 'INC' | 'PRC' | 'PRO' | 'REN' | 'REQ' 
+                          })}
+                        >
+                          {tipo.value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Descripción
+                    </label>
                     <input
                       type="text"
-                      placeholder="Ej: 2 horas, 3 días"
-                      className="w-full bg-gray-700 text-white rounded-lg p-2"
-                      value={requirementToEdit.tiempoEstimado || ''}
-                      onChange={(e) => setRequirementToEdit({ ...requirementToEdit, tiempoEstimado: e.target.value })}
+                      placeholder="Descripción del requerimiento"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                      value={requirementToEdit.name}
+                      onChange={(e) => setRequirementToEdit({ ...requirementToEdit, name: e.target.value })}
                     />
                   </div>
-                )}
+  
+                  <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        id="editTieneEstimacion"
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                        checked={requirementToEdit.tieneEstimacion || false}
+                        onChange={(e) => setRequirementToEdit({ 
+                          ...requirementToEdit, 
+                          tieneEstimacion: e.target.checked,
+                          tiempoEstimado: e.target.checked ? requirementToEdit.tiempoEstimado || '' : undefined
+                        })}
+                      />
+                      <label htmlFor="editTieneEstimacion" className="ml-2 text-sm font-medium text-gray-200 flex items-center">
+                        <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                        Tiene tiempo estimado
+                      </label>
+                    </div>
+                    
+                    {requirementToEdit.tieneEstimacion && (
+                      <div className="ml-6">
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Tiempo Estimado</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 2 horas, 3 días"
+                          className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={requirementToEdit.tiempoEstimado || ''}
+                          onChange={(e) => setRequirementToEdit({ ...requirementToEdit, tiempoEstimado: e.target.value })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
+                  <button
+                    onClick={() => {
+                      setShowEditRequirementModal(false);
+                      setRequirementToEdit(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleUpdateRequirement}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-lg shadow-lg transition-colors"
+                    disabled={!requirementToEdit.name.trim() || (requirementToEdit.tieneEstimacion && !requirementToEdit.tiempoEstimado?.trim())}
+                  >
+                    <div className="flex items-center">
+                      <Save className="h-4 w-4 mr-1" />
+                      Actualizar
+                    </div>
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowEditRequirementModal(false);
-                  setRequirementToEdit(null);
-                }}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleUpdateRequirement}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg"
-                disabled={!requirementToEdit.name.trim() || (requirementToEdit.tieneEstimacion && !requirementToEdit.tiempoEstimado?.trim())}
-              >
-                Actualizar
-              </button>
             </div>
           </div>
         </div>
