@@ -94,7 +94,8 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
         const timeStr = task.completionDetails.timeSpent;
         // Intentar convertir el string de tiempo a horas
         const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
-        taskHours += hours;
+        // Validar que las horas sean razonables (menos de 24 horas por tarea)
+        taskHours += hours > 0 && hours < 24 ? hours : 0;
       }
     }
     
@@ -110,14 +111,25 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
         if (entryDate.toDateString() === selectedDate.toDateString()) {
           const timeStr = entry.timeSpent;
           const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
-          taskHours += hours;
+          // Validar que las horas sean razonables (menos de 24 horas por entrada)
+          taskHours += hours > 0 && hours < 24 ? hours : 0;
         }
       });
+    }
+    
+    // Imprimir para depuración
+    if (taskHours > 0) {
+      console.log(`Tarea: ${task.description}, Horas: ${taskHours}`);
     }
     
     return total + taskHours;
   }, 0);
 
+  // Asegurar que el total de horas sea razonable (no más de 24 horas diarias)
+  const validatedTotalHours = Math.min(totalHours, 24);
+  
+  console.log(`Total de horas calculadas: ${totalHours}, Horas validadas: ${validatedTotalHours}`);
+  
   // Función auxiliar para extraer horas de strings como "2 horas", "30 minutos"
   const extractHoursFromTimeString = (timeStr: string): number => {
     if (!timeStr) return 0;
@@ -180,10 +192,10 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   const workHours = 8 - dailyTrainingHours;
 
   // Calcular horas restantes de trabajo
-  const remainingWorkHours = Math.max(workHours - totalHours, 0);
+  const remainingWorkHours = Math.max(workHours - validatedTotalHours, 0);
   
   // Verificar si se han excedido las horas de trabajo (solo para actividades, no adiestramiento)
-  const exceededHours = totalHours > workHours;
+  const exceededHours = validatedTotalHours > workHours;
   
   // Mostrar advertencia solo para usuarios con programa de adiestramiento cuando exceden sus horas
   const showExceededWarning = hasTrainingProgram && exceededHours;
@@ -285,19 +297,19 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
               <h4 className="text-white text-xs sm:text-sm font-medium">Horas de Trabajo</h4>
             </div>
             <div className="text-right">
-              <span className={`font-semibold text-xs sm:text-sm ${showExceededWarning ? 'text-yellow-400' : 'text-cyan-400'}`}>{totalHours.toFixed(1)}</span>
+              <span className={`font-semibold text-xs sm:text-sm ${showExceededWarning ? 'text-yellow-400' : 'text-cyan-400'}`}>{validatedTotalHours.toFixed(1)}</span>
               <span className="text-gray-400 text-xs sm:text-sm"> / {workHours.toFixed(1)}</span>
             </div>
           </div>
           <div className="h-1.5 sm:h-2 bg-gray-700 rounded-full overflow-hidden">
             <div 
               className={`h-full rounded-full ${showExceededWarning ? 'bg-yellow-500' : 'bg-cyan-500'}`}
-              style={{ width: `${Math.min((totalHours / workHours) * 100, 100)}%` }}
+              style={{ width: `${Math.min((validatedTotalHours / workHours) * 100, 100)}%` }}
             ></div>
           </div>
           {showExceededWarning ? (
             <div className="text-xs sm:text-sm text-yellow-300 mt-1 flex items-center justify-between">
-              <span>Has excedido las horas de trabajo normales en {(totalHours - workHours).toFixed(1)} horas</span>
+              <span>Has excedido las horas de trabajo normales en {(validatedTotalHours - workHours).toFixed(1)} horas</span>
               <button className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs px-2 py-0.5 rounded">
                 Registrar como horas extra
               </button>
