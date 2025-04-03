@@ -24,12 +24,14 @@ import {
   Trash2,
   ChevronLeft,
   ListTodo,
-  Edit
+  Edit,
+  Briefcase,
+  Calendar as CalendarIcon,
+  Save
 } from 'lucide-react';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
-import { RequirementType, Requirement, Task, TaskType, TaskPriority } from './services/databaseService';
-import { UserProfileModal } from './components/UserProfileModal';
+import { Requirement, Task } from './services/databaseService';
 import { WorkTimeTracker } from './components/WorkTimeTracker';
 import Icon from './components/Icon';
 import AuthScreen from './components/AuthScreen';
