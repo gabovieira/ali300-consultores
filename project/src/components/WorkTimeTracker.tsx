@@ -31,9 +31,35 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
     
     const completedAt = task.completionDetails.completedAt instanceof Timestamp 
       ? task.completionDetails.completedAt.toDate() 
-      : task.completionDetails.completedAt;
+      : task.completionDetails.completedAt instanceof Date
+        ? task.completionDetails.completedAt
+        : new Date(task.completionDetails.completedAt);
     
     return completedAt.toDateString() === selectedDate.toDateString();
+  });
+
+  // Filtrar tareas con progreso en la fecha seleccionada
+  const progressTasks = tasks.filter(task => {
+    if (!task.progress || task.progress.length === 0) return false;
+    
+    return task.progress.some(entry => {
+      const entryDate = entry.date instanceof Timestamp 
+        ? entry.date.toDate() 
+        : entry.date instanceof Date
+          ? entry.date
+          : new Date(entry.date);
+      
+      return entryDate.toDateString() === selectedDate.toDateString();
+    });
+  });
+
+  // Combinar tareas completadas y tareas con progreso, eliminando duplicados
+  const allActivityTasks = [...completedTasks];
+  
+  progressTasks.forEach(progTask => {
+    if (!allActivityTasks.some(task => task.id === progTask.id)) {
+      allActivityTasks.push(progTask);
+    }
   });
 
   // Calcular horas totales trabajadas
@@ -91,19 +117,19 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
 
   // Actualizar tareas visibles cuando cambian las tareas completadas o la paginación
   useEffect(() => {
-    if (completedTasks.length === 0) {
+    if (allActivityTasks.length === 0) {
       setVisibleTasks([]);
       return;
     }
     
     // Asegurarse de que el índice actual sea válido
-    if (currentTaskIndex >= completedTasks.length) {
-      setCurrentTaskIndex(Math.max(0, completedTasks.length - 1));
+    if (currentTaskIndex >= allActivityTasks.length) {
+      setCurrentTaskIndex(Math.max(0, allActivityTasks.length - 1));
     }
     
     // Mostrar solo la tarea actual
-    setVisibleTasks([completedTasks[currentTaskIndex]]);
-  }, [completedTasks, currentTaskIndex]);
+    setVisibleTasks([allActivityTasks[currentTaskIndex]]);
+  }, [allActivityTasks, currentTaskIndex]);
 
   // Navegar a la tarea anterior
   const goToPreviousTask = () => {
@@ -114,7 +140,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
 
   // Navegar a la siguiente tarea
   const goToNextTask = () => {
-    if (currentTaskIndex < completedTasks.length - 1) {
+    if (currentTaskIndex < allActivityTasks.length - 1) {
       setCurrentTaskIndex(currentTaskIndex + 1);
     }
   };
@@ -199,12 +225,12 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
         <div className="bg-gray-700/30 p-2 sm:p-3 rounded-lg">
           <div className="flex items-center justify-between mb-1.5 sm:mb-2">
             <div className="flex items-center gap-1">
-              <Check className="text-cyan-400 w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <Clock className="text-cyan-400 w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
               <h4 className="text-white text-xs sm:text-sm font-medium truncate">
-                Tareas Completadas ({completedTasks.length})
+                Actividad del Día ({allActivityTasks.length})
               </h4>
             </div>
-            {completedTasks.length > 0 && (
+            {allActivityTasks.length > 0 && (
               <div className="flex items-center gap-1 sm:gap-2">
                 <button
                   onClick={goToPreviousTask}
@@ -218,13 +244,13 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                   <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 <span className="text-gray-400 text-xs sm:text-sm">
-                  {currentTaskIndex + 1} / {completedTasks.length}
+                  {currentTaskIndex + 1} / {allActivityTasks.length}
                 </span>
                 <button
                   onClick={goToNextTask}
-                  disabled={currentTaskIndex === completedTasks.length - 1}
+                  disabled={currentTaskIndex === allActivityTasks.length - 1}
                   className={`p-1 rounded-full ${
-                    currentTaskIndex === completedTasks.length - 1
+                    currentTaskIndex === allActivityTasks.length - 1
                       ? 'text-gray-600 cursor-not-allowed'
                       : 'text-gray-400 hover:text-white hover:bg-gray-700'
                   }`}
@@ -239,6 +265,18 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
             <div className="space-y-2">
               {visibleTasks.map(task => {
                 const requirement = requirements.find(r => r.id === task.requirementId);
+                
+                // Encontrar entradas de progreso para la fecha seleccionada
+                const todaysProgress = task.progress?.filter(entry => {
+                  const entryDate = entry.date instanceof Timestamp 
+                    ? entry.date.toDate() 
+                    : entry.date instanceof Date
+                      ? entry.date
+                      : new Date(entry.date);
+                  
+                  return entryDate.toDateString() === selectedDate.toDateString();
+                });
+                
                 return (
                   <div key={task.id} className="bg-gray-700/70 rounded-lg p-2 sm:p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -250,29 +288,57 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                           {requirement?.tipo}: {requirement?.name}
                         </p>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-cyan-400 text-xs sm:text-sm font-medium">
-                          {task.completionDetails?.timeSpent || '0'} horas
-                        </div>
-                        {trainingHours && (
-                          <div className="text-purple-400 text-xs">
-                            +{trainingHours.hoursPerTask.toFixed(1)}h adiestramiento
-                          </div>
-                        )}
+                      <div className={`px-2 py-0.5 text-[10px] sm:text-xs rounded-full flex-shrink-0 ${
+                        task.status === 'completed' 
+                          ? 'bg-green-900/50 text-green-400' 
+                          : 'bg-blue-900/50 text-blue-400'
+                      }`}>
+                        {task.status === 'completed' ? 'Completada' : 'En Progreso'}
                       </div>
                     </div>
-                    {task.completionDetails?.description && (
-                      <p className="text-gray-300 text-xs sm:text-sm mt-1 sm:mt-2 line-clamp-2">
-                        {task.completionDetails.description}
-                      </p>
+
+                    {/* Mostrar detalles de tareas completadas */}
+                    {task.status === 'completed' && task.completionDetails && (
+                      <div className="mt-2 text-xs border-l-2 border-green-700 pl-2">
+                        <p className="text-gray-300">{task.completionDetails.description}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                          <span className="text-gray-400">
+                            Tiempo: {task.completionDetails.timeSpent}
+                          </span>
+                          {task.completionDetails.tools && task.completionDetails.tools.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1 w-full">
+                              <span className="text-gray-400">Objetos:</span>
+                              {task.completionDetails.tools.map((tool, idx) => (
+                                <span key={idx} className="bg-gray-600/50 text-gray-300 text-[10px] px-1.5 py-0.5 rounded-full">
+                                  {tool}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Mostrar detalles de progreso */}
+                    {todaysProgress && todaysProgress.length > 0 && (
+                      <div className="mt-2">
+                        {todaysProgress.map((progress, idx) => (
+                          <div key={idx} className="text-xs border-l-2 border-blue-700 pl-2 mb-2">
+                            <p className="text-gray-300">{progress.description}</p>
+                            <span className="text-gray-400">
+                              Tiempo: {progress.timeSpent}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-3 sm:py-4 bg-gray-700/50 rounded-lg">
-              <p className="text-gray-400 text-xs sm:text-sm">No hay tareas completadas para esta fecha</p>
+            <div className="bg-gray-700/70 rounded-lg p-2 sm:p-3 text-center text-gray-400 text-xs sm:text-sm">
+              No hay actividad registrada para esta fecha
             </div>
           )}
         </div>

@@ -137,8 +137,9 @@ function App() {
     timeSpent: ''
   });
   const [availableTools, setAvailableTools] = useState([
-    'React', 'Next.js', 'Firebase', 'TypeScript', 'JavaScript', 
-    'Node.js', 'Express', 'CSS', 'Tailwind', 'Material UI', 'Bootstrap'
+    'Forma (.fmb)', 'Package (.pks)', 'Package Body (.pkb)', 'Trigger (.trg)', 
+    'Procedure (.prc)', 'Script (ALTER)', 'Script (UPDATE)', 'Script (INSERT)', 
+    'Script (DELETE)', 'Función (.fnc)', 'Reporte (.rdf)'
   ]);
   const [newTool, setNewTool] = useState('');
 
