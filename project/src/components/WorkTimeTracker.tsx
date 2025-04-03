@@ -171,12 +171,23 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
   const hasTrainingProgram = isTrainee && currentUser?.userData?.adiestramiento;
   const dailyTrainingHours = hasTrainingProgram ? currentUser?.userData?.horasAdiestramiento || 0 : 0;
-  const hoursPerActivity = totalDailyActivities > 0 ? dailyTrainingHours / totalDailyActivities : dailyTrainingHours;
+  
+  // Convertir horas de adiestramiento a minutos para una distribución exacta
+  const dailyTrainingMinutes = Math.round(dailyTrainingHours * 60);
+  const minutesPerActivity = totalDailyActivities > 0 ? Math.floor(dailyTrainingMinutes / totalDailyActivities) : dailyTrainingMinutes;
+  const hoursPerActivity = minutesPerActivity / 60;
+  
   const workHours = 8 - dailyTrainingHours;
 
   // Calcular horas restantes de trabajo
   const remainingWorkHours = Math.max(workHours - totalHours, 0);
   
+  // Verificar si se han excedido las horas de trabajo (solo para actividades, no adiestramiento)
+  const exceededHours = totalHours > workHours;
+  
+  // Mostrar advertencia solo para usuarios con programa de adiestramiento cuando exceden sus horas
+  const showExceededWarning = hasTrainingProgram && exceededHours;
+
   // Calcular horas de adiestramiento automáticamente
   useEffect(() => {
     if (!hasTrainingProgram) {
@@ -274,17 +285,24 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
               <h4 className="text-white text-xs sm:text-sm font-medium">Horas de Trabajo</h4>
             </div>
             <div className="text-right">
-              <span className="text-cyan-400 font-semibold text-xs sm:text-sm">{Math.min(totalHours, workHours).toFixed(1)}</span>
+              <span className={`font-semibold text-xs sm:text-sm ${showExceededWarning ? 'text-yellow-400' : 'text-cyan-400'}`}>{totalHours.toFixed(1)}</span>
               <span className="text-gray-400 text-xs sm:text-sm"> / {workHours.toFixed(1)}</span>
             </div>
           </div>
           <div className="h-1.5 sm:h-2 bg-gray-700 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-cyan-500 rounded-full"
+              className={`h-full rounded-full ${showExceededWarning ? 'bg-yellow-500' : 'bg-cyan-500'}`}
               style={{ width: `${Math.min((totalHours / workHours) * 100, 100)}%` }}
             ></div>
           </div>
-          {remainingWorkHours > 0 && (
+          {showExceededWarning ? (
+            <div className="text-xs sm:text-sm text-yellow-300 mt-1 flex items-center justify-between">
+              <span>Has excedido las horas de trabajo normales en {(totalHours - workHours).toFixed(1)} horas</span>
+              <button className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs px-2 py-0.5 rounded">
+                Registrar como horas extra
+              </button>
+            </div>
+          ) : remainingWorkHours > 0 && (
             <div className="text-xs sm:text-sm text-cyan-300 mt-1">
               Faltan {remainingWorkHours.toFixed(1)} horas para completar la jornada laboral
             </div>
@@ -520,10 +538,9 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                       // Formatear el tiempo de adiestramiento
                       let adiestramientoDisplay = '';
                       if (hoursPerActivity < 1) {
-                        const minutes = Math.round(hoursPerActivity * 60);
-                        adiestramientoDisplay = `${minutes} minutos`;
+                        adiestramientoDisplay = `${minutesPerActivity} minutos`;
                       } else {
-                        adiestramientoDisplay = `${hoursPerActivity.toFixed(2)} horas`;
+                        adiestramientoDisplay = `${minutesPerActivity} minutos (${hoursPerActivity.toFixed(2)} horas)`;
                       }
                       
                       return (
@@ -537,9 +554,6 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                           <div className="flex justify-between mt-1">
                             <span className="text-purple-300">
                               Tiempo registrado: {timeSpent}
-                            </span>
-                            <span className="text-purple-300 font-medium">
-                              Adiestramiento: {adiestramientoDisplay}
                             </span>
                           </div>
                         </div>
@@ -555,10 +569,9 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                             // Formatear el tiempo de adiestramiento para cada avance
                             let adiestramientoDisplay = '';
                             if (hoursPerActivity < 1) {
-                              const minutes = Math.round(hoursPerActivity * 60);
-                              adiestramientoDisplay = `${minutes} minutos`;
+                              adiestramientoDisplay = `${minutesPerActivity} minutos`;
                             } else {
-                              adiestramientoDisplay = `${hoursPerActivity.toFixed(2)} horas`;
+                              adiestramientoDisplay = `${minutesPerActivity} minutos (${hoursPerActivity.toFixed(2)} horas)`;
                             }
                             
                             return (
@@ -575,9 +588,6 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                                 <div className="flex justify-between mt-1">
                                   <span className="text-purple-300">
                                     Tiempo registrado: {progress.timeSpent}
-                                  </span>
-                                  <span className="text-purple-300 font-medium">
-                                    Adiestramiento: {adiestramientoDisplay}
                                   </span>
                                 </div>
                               </div>
@@ -598,14 +608,6 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                       {dailyTrainingHours < 1 
                         ? `${Math.round(dailyTrainingHours * 60)} minutos` 
                         : `${dailyTrainingHours.toFixed(1)} horas`}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex justify-between text-xs">
-                    <span className="text-gray-300">Adiestramiento por actividad:</span>
-                    <span className="text-gray-300 font-medium">
-                      {hoursPerActivity < 1 
-                        ? `${Math.round(hoursPerActivity * 60)} minutos` 
-                        : `${hoursPerActivity.toFixed(2)} horas`}
                     </span>
                   </div>
                 </div>
