@@ -137,6 +137,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
   const hasTrainingProgram = isTrainee && currentUser?.userData?.adiestramiento;
   const dailyTrainingHours = hasTrainingProgram ? currentUser?.userData?.horasAdiestramiento || 0 : 0;
+  const hoursPerActivity = allActivityTasks.length > 0 ? dailyTrainingHours / allActivityTasks.length : dailyTrainingHours;
   const workHours = 8 - dailyTrainingHours;
 
   // Calcular horas restantes de trabajo
@@ -564,6 +565,14 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                       {dailyTrainingHours < 1 
                         ? `${Math.round(dailyTrainingHours * 60)} minutos` 
                         : `${dailyTrainingHours.toFixed(1)} horas`}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex justify-between text-xs">
+                    <span className="text-gray-300">Adiestramiento por actividad:</span>
+                    <span className="text-gray-300 font-medium">
+                      {hoursPerActivity < 1 
+                        ? `${Math.round(hoursPerActivity * 60)} minutos` 
+                        : `${hoursPerActivity.toFixed(1)} horas`}
                     </span>
                   </div>
                 </div>
