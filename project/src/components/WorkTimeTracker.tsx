@@ -62,6 +62,22 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
     }
   });
 
+  // Agrupar tareas por requerimiento para una mejor visualización
+  const tasksByRequirement: { [reqId: string]: Task[] } = {};
+  
+  allActivityTasks.forEach(task => {
+    if (!tasksByRequirement[task.requirementId]) {
+      tasksByRequirement[task.requirementId] = [];
+    }
+    tasksByRequirement[task.requirementId].push(task);
+  });
+  
+  // Convertir a array de grupos para navegar entre ellos
+  const taskGroups = Object.keys(tasksByRequirement).map(reqId => ({
+    requirementId: reqId,
+    tasks: tasksByRequirement[reqId]
+  }));
+  
   // Calcular horas totales trabajadas (incluidas las de progreso)
   const totalHours = tasks.reduce((total, task) => {
     let taskHours = 0;
@@ -182,14 +198,28 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
       return;
     }
     
-    // Mostrar todas las tareas con actividad en lugar de solo la tarea actual
-    setVisibleTasks(allActivityTasks);
-  }, [allActivityTasks]);
+    // Asegurarse de que el índice actual sea válido para los grupos de tareas
+    if (currentTaskIndex >= taskGroups.length) {
+      setCurrentTaskIndex(Math.max(0, taskGroups.length - 1));
+    }
+    
+    // Mostrar todas las tareas del requerimiento seleccionado
+    setVisibleTasks(taskGroups[currentTaskIndex]?.tasks || []);
+  }, [allActivityTasks, currentTaskIndex, taskGroups]);
 
-  // Ya no necesitamos estas funciones de navegación pero las mantenemos vacías
-  // para evitar errores en caso de que se utilicen en algún otro lugar
-  const goToPreviousTask = () => {};
-  const goToNextTask = () => {};
+  // Navegar al grupo anterior
+  const goToPreviousTask = () => {
+    if (currentTaskIndex > 0) {
+      setCurrentTaskIndex(currentTaskIndex - 1);
+    }
+  };
+
+  // Navegar al siguiente grupo
+  const goToNextTask = () => {
+    if (currentTaskIndex < taskGroups.length - 1) {
+      setCurrentTaskIndex(currentTaskIndex + 1);
+    }
+  };
 
   return (
     <div className="bg-gray-800 rounded-lg p-3 sm:p-4 shadow-md border border-gray-700">
@@ -227,6 +257,11 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
           {remainingWorkHours > 0 && (
             <div className="text-xs sm:text-sm text-cyan-300 mt-1">
               Faltan {remainingWorkHours.toFixed(1)} horas para completar la jornada laboral
+            </div>
+          )}
+          {taskGroups.length > 1 && (
+            <div className="text-xs text-gray-400 mt-1">
+              Mostrando {visibleTasks.length} de {allActivityTasks.length} tareas activas
             </div>
           )}
         </div>
@@ -288,10 +323,52 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                 Actividad del Día ({allActivityTasks.length})
               </h4>
             </div>
+            {taskGroups.length > 0 && (
+              <div className="flex items-center gap-1 sm:gap-2">
+                <button
+                  onClick={goToPreviousTask}
+                  disabled={currentTaskIndex === 0}
+                  className={`p-1 rounded-full ${
+                    currentTaskIndex === 0
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <span className="text-gray-400 text-xs sm:text-sm">
+                  {currentTaskIndex + 1} / {taskGroups.length}
+                </span>
+                <button
+                  onClick={goToNextTask}
+                  disabled={currentTaskIndex === taskGroups.length - 1}
+                  className={`p-1 rounded-full ${
+                    currentTaskIndex === taskGroups.length - 1
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {visibleTasks.length > 0 ? (
             <div className="space-y-2">
+              {/* Mostrar el nombre del requerimiento como subtítulo */}
+              {taskGroups[currentTaskIndex] && (
+                <div className="bg-gradient-to-r from-gray-800/70 to-gray-700/70 rounded-lg p-2 mb-3">
+                  <p className="text-cyan-300 text-xs font-medium">
+                    {(() => {
+                      const reqId = taskGroups[currentTaskIndex].requirementId;
+                      const req = requirements.find(r => r.id === reqId);
+                      return req ? `${req.tipo}: ${req.name}` : 'Requerimiento';
+                    })()}
+                  </p>
+                </div>
+              )}
+              
               {visibleTasks.map(task => {
                 const requirement = requirements.find(r => r.id === task.requirementId);
                 
@@ -391,7 +468,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
           )}
 
           {/* Sección de Adiestramiento */}
-          {currentUser?.userData?.adiestramiento && allActivityTasks.length > 0 && (
+          {currentUser?.userData?.adiestramiento && visibleTasks.length > 0 && (
             <div className="mt-4 bg-gradient-to-r from-purple-900/70 to-indigo-900/70 rounded-lg p-3">
               <div className="flex items-center mb-2">
                 <GraduationCap className="h-4 w-4 mr-2 text-purple-400" />
@@ -404,7 +481,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                 </p>
                 
                 <div className="space-y-2">
-                  {allActivityTasks.map(task => {
+                  {visibleTasks.map(task => {
                     const requirement = requirements.find(r => r.id === task.requirementId);
                     
                     // Ahora vamos a mostrar cada avance individualmente para la tarea visible
