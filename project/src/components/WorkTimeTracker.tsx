@@ -139,11 +139,32 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
     return hours + minutes;
   };
 
+  // Calcular el número total de actividades para el cálculo de adiestramiento
+  const totalDailyActivities = allActivityTasks.reduce((total, task) => {
+    // Si la tarea está completada, cuenta como 1 actividad
+    if (task.status === 'completed') {
+      return total + 1;
+    }
+    
+    // Si tiene avances hoy, contar cada avance como una actividad separada
+    const todaysProgressCount = task.progress?.filter(entry => {
+      const entryDate = entry.date instanceof Timestamp 
+        ? entry.date.toDate() 
+        : entry.date instanceof Date
+          ? entry.date
+          : new Date(entry.date);
+      
+      return entryDate.toDateString() === selectedDate.toDateString();
+    }).length || 0;
+    
+    return total + todaysProgressCount;
+  }, 0);
+  
   // Verificar si el usuario es trainee y tiene horas de adiestramiento
   const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
   const hasTrainingProgram = isTrainee && currentUser?.userData?.adiestramiento;
   const dailyTrainingHours = hasTrainingProgram ? currentUser?.userData?.horasAdiestramiento || 0 : 0;
-  const hoursPerActivity = allActivityTasks.length > 0 ? dailyTrainingHours / allActivityTasks.length : dailyTrainingHours;
+  const hoursPerActivity = totalDailyActivities > 0 ? dailyTrainingHours / totalDailyActivities : dailyTrainingHours;
   const workHours = 8 - dailyTrainingHours;
 
   // Calcular horas restantes de trabajo
@@ -488,7 +509,6 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                     // Si es tarea completada, usamos su información de completado
                     if (task.status === 'completed' && task.completionDetails) {
                       const timeSpent = task.completionDetails.timeSpent;
-                      const hoursPerActivity = dailyTrainingHours / allActivityTasks.length;
                       
                       // Formatear el tiempo de adiestramiento
                       let adiestramientoDisplay = '';
@@ -496,7 +516,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                         const minutes = Math.round(hoursPerActivity * 60);
                         adiestramientoDisplay = `${minutes} minutos`;
                       } else {
-                        adiestramientoDisplay = `${hoursPerActivity.toFixed(1)} horas`;
+                        adiestramientoDisplay = `${hoursPerActivity.toFixed(2)} horas`;
                       }
                       
                       return (
@@ -523,7 +543,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                       return (
                         <React.Fragment key={`training-progress-${task.id}`}>
                           {todaysProgressEntries.map((progress, idx) => {
-                            const hoursPerActivity = dailyTrainingHours / todaysProgressEntries.length;
+                            // Usar la variable global hoursPerActivity que considera todas las actividades del día
                             
                             // Formatear el tiempo de adiestramiento para cada avance
                             let adiestramientoDisplay = '';
@@ -531,7 +551,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                               const minutes = Math.round(hoursPerActivity * 60);
                               adiestramientoDisplay = `${minutes} minutos`;
                             } else {
-                              adiestramientoDisplay = `${hoursPerActivity.toFixed(1)} horas`;
+                              adiestramientoDisplay = `${hoursPerActivity.toFixed(2)} horas`;
                             }
                             
                             return (
