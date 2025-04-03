@@ -165,7 +165,7 @@ export const requirementsService = {
   },
 
   // Crear un nuevo requisito
-  create: async (requirement: Omit<Requirement, 'id' | 'createdAt'>): Promise<string> => {
+  create: async (requirement: Omit<Requirement, 'id' | 'createdAt'> & { createdAt?: Date }): Promise<string> => {
     try {
       console.log('databaseService: Intentando crear un nuevo requisito:', JSON.stringify(requirement, null, 2));
       
@@ -192,7 +192,8 @@ export const requirementsService = {
         'userId:', typeof requirement.userId,
         'tipo:', typeof requirement.tipo,
         'tieneEstimacion:', typeof requirement.tieneEstimacion,
-        'tiempoEstimado:', typeof requirement.tiempoEstimado
+        'tiempoEstimado:', typeof requirement.tiempoEstimado,
+        'createdAt:', requirement.createdAt instanceof Date ? 'Date' : 'undefined'
       );
       
       // Limpiar el objeto para eliminar campos undefined
@@ -200,13 +201,17 @@ export const requirementsService = {
       
       // Copiar solo propiedades que no sean undefined
       Object.entries(requirement).forEach(([key, value]) => {
-        if (value !== undefined) {
+        if (value !== undefined && key !== 'createdAt') {
           cleanRequirement[key] = value;
         }
       });
       
-      // Añadir el timestamp de creación
-      cleanRequirement.createdAt = serverTimestamp();
+      // Añadir el timestamp de creación (usar fecha personalizada si existe)
+      if (requirement.createdAt) {
+        cleanRequirement.createdAt = requirement.createdAt;
+      } else {
+        cleanRequirement.createdAt = serverTimestamp();
+      }
       
       console.log('databaseService: Objeto limpio a guardar en Firestore:', JSON.stringify(cleanRequirement, null, 2));
       

@@ -11,7 +11,7 @@ interface DataContextType {
   
   // Funciones para Requirements
   setSelectedRequirement: (id: string) => void;
-  addRequirement: (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
+  addRequirement: (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date) => Promise<string | null>;
   updateRequirement: (id: string, data: Partial<Requirement>) => Promise<void>;
   deleteRequirement: (id: string) => Promise<void>;
   completeRequirement: (id: string, completionInfo?: { sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }) => Promise<void>;
@@ -133,7 +133,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Funciones para Requirements
-  const addRequirement = async (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>): Promise<string | null> => {
+  const addRequirement = async (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date): Promise<string | null> => {
     if (!currentUser) {
       setError('Debes iniciar sesión para crear un requerimiento');
       return null;
@@ -144,30 +144,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('DataContext: Usuario autenticado:', currentUser);
       
       // Crear objeto limpio del requerimiento (sin undefined)
-      const requirementToCreate: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'> = {
+      const requirementData: Omit<Requirement, 'id' | 'createdAt'> & { createdAt: Date } = {
         name: data.name,
         status: 'active',
-        userId: currentUser.uid // Añadir el ID del usuario actual
+        userId: currentUser.uid, // Añadir el ID del usuario actual
+        createdAt: customDate || new Date()
       };
       
       // Añadir propiedades opcionales solo si están definidas
       if (data.tipo) {
-        requirementToCreate.tipo = data.tipo;
+        requirementData.tipo = data.tipo;
       }
       
       if (data.tieneEstimacion !== undefined) {
-        requirementToCreate.tieneEstimacion = data.tieneEstimacion;
+        requirementData.tieneEstimacion = data.tieneEstimacion;
         
         // Solo añadir tiempoEstimado si tieneEstimacion es true y hay un valor
         if (data.tieneEstimacion && data.tiempoEstimado) {
-          requirementToCreate.tiempoEstimado = data.tiempoEstimado;
+          requirementData.tiempoEstimado = data.tiempoEstimado;
         }
       }
       
-      console.log('DataContext: Objeto de requerimiento limpio a crear:', requirementToCreate);
+      console.log('DataContext: Objeto de requerimiento limpio a crear:', requirementData);
       
       // Intentar crear el requerimiento
-      const newId = await requirementsService.create(requirementToCreate);
+      const newId = await requirementsService.create(requirementData);
       console.log('DataContext: Requerimiento creado con ID:', newId);
       
       // Crear objeto para el estado local
@@ -175,7 +176,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: newId,
         name: data.name,
         status: 'active',
-        createdAt: new Date(),
+        createdAt: requirementData.createdAt,
         userId: currentUser.uid
       };
       

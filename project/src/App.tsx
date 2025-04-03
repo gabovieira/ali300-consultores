@@ -93,7 +93,9 @@ function App() {
     name: '',
     tipo: 'REQ' as 'AJU' | 'INC' | 'PRC' | 'PRO' | 'REN' | 'REQ',
     tieneEstimacion: false,
-    tiempoEstimado: ''
+    tiempoEstimado: '',
+    useCustomDate: false,
+    customDate: new Date().toISOString().split('T')[0]
   });
   const [newTask, setNewTask] = useState({
     description: '',
@@ -162,16 +164,23 @@ function App() {
       tipo: newRequirement.tipo,
       tieneEstimacion: newRequirement.tieneEstimacion,
       tiempoEstimado: newRequirement.tieneEstimacion ? newRequirement.tiempoEstimado : undefined,
+      useCustomDate: newRequirement.useCustomDate,
+      customDate: newRequirement.customDate,
       currentUser: currentUser
     });
     
     try {
-      const reqId = await addRequirement({
+      const reqData = {
         name: newRequirement.name,
         tipo: newRequirement.tipo,
         tieneEstimacion: newRequirement.tieneEstimacion,
         tiempoEstimado: newRequirement.tieneEstimacion ? newRequirement.tiempoEstimado : undefined
-      });
+      };
+      
+      // Si se usa fecha personalizada, convertirla a objeto Date
+      const customDate = newRequirement.useCustomDate ? new Date(newRequirement.customDate) : undefined;
+      
+      const reqId = await addRequirement(reqData, customDate);
       
       console.log('Requerimiento creado con éxito, ID:', reqId);
       
@@ -186,9 +195,11 @@ function App() {
         name: '',
         tipo: 'REQ',
         tieneEstimacion: false,
-        tiempoEstimado: ''
+        tiempoEstimado: '',
+        useCustomDate: false,
+        customDate: new Date().toISOString().split('T')[0]
       });
-    setShowNewRequirementModal(false);
+      setShowNewRequirementModal(false);
     } catch (err) {
       console.error('Error al crear requerimiento desde App.tsx:', err);
       alert('Error al crear el requerimiento. Por favor, inténtalo de nuevo.');
@@ -1117,6 +1128,35 @@ function App() {
                           className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                           value={newRequirement.tiempoEstimado}
                           onChange={(e) => setNewRequirement({ ...newRequirement, tiempoEstimado: e.target.value })}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        id="useCustomDate"
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                        checked={newRequirement.useCustomDate}
+                        onChange={(e) => setNewRequirement({ ...newRequirement, useCustomDate: e.target.checked })}
+                      />
+                      <label htmlFor="useCustomDate" className="ml-2 text-sm font-medium text-gray-200 flex items-center">
+                        <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                        Usar fecha personalizada
+                      </label>
+                    </div>
+                    
+                    {newRequirement.useCustomDate && (
+                      <div className="ml-6">
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          className="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                          value={newRequirement.customDate}
+                          onChange={(e) => setNewRequirement({ ...newRequirement, customDate: e.target.value })}
+                          max={new Date().toISOString().split('T')[0]}
                         />
                       </div>
                     )}
