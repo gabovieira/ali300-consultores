@@ -1277,157 +1277,154 @@ function App() {
 
       {/* Task Completion Modal */}
       {showCompletionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
-            <div className="flex flex-col">
-              {/* Cabecera */}
-              <div className="bg-gradient-to-r from-green-800 to-emerald-900 p-5">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-white">Completar Tarea</h3>
-                  <button 
-                    onClick={() => {
-                      setShowCompletionModal(false);
-                      setSelectedTaskForCompletion(null);
-                    }}
-                    className="text-gray-200 hover:text-white transition-colors"
-                  >
-                    <XCircle className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="mt-2 text-sm text-green-200">
-                  {selectedTaskForCompletion && 
-                    tasks.find(t => t.id === selectedTaskForCompletion)?.description}
-                </div>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-3 overflow-auto max-h-screen">
+          <div className="bg-gray-900 rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            {/* Cabecera fija */}
+            <div className="bg-gradient-to-r from-green-800 to-emerald-900 p-3 sm:p-4 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base sm:text-lg font-semibold text-white">Completar Tarea</h3>
+                <button 
+                  onClick={() => {
+                    setShowCompletionModal(false);
+                    setSelectedTaskForCompletion(null);
+                  }}
+                  className="text-gray-200 hover:text-white transition-colors"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
               </div>
-              
-              {/* Formulario */}
-              <div className="p-6">
-                <div className="space-y-5">
-                  <div>
-                    <label className="flex items-center text-sm font-medium text-green-400 mb-2">
-                      <CheckSquare className="h-4 w-4 mr-2" />
-                      ¿Cómo se completó?
-                    </label>
-                    <textarea
-                      name="description"
-                      placeholder="Describe cómo completaste la tarea y los detalles relevantes..."
-                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors resize-none h-32"
-                      value={completionDetails.description}
-                      onChange={handleCompletionDetailsChange}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center text-sm font-medium text-green-400 mb-2">
-                      <Clock4 className="h-4 w-4 mr-2" />
-                      Tiempo total dedicado
-                    </label>
-                    <input
-                      type="text"
-                      name="timeSpent"
-                      placeholder="Ej: 2 horas, 30 minutos"
-                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
-                      value={completionDetails.timeSpent}
-                      onChange={handleCompletionDetailsChange}
-                    />
-                  </div>
-                  
-                  <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-                    <div className="mb-3">
-                      <h4 className="text-sm font-medium text-green-400 mb-3">Estado del entregable</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="sentToQA"
-                            name="sentToQA"
-                            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
-                            checked={completionDetails.sentToQA}
-                            onChange={handleCheckboxChange}
-                          />
-                          <label htmlFor="sentToQA" className="ml-2 text-sm font-medium text-gray-200">
-                            Enviado a QA
-                          </label>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="deployedToProduction"
-                            name="deployedToProduction"
-                            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
-                            checked={completionDetails.deployedToProduction}
-                            onChange={handleCheckboxChange}
-                          />
-                          <label htmlFor="deployedToProduction" className="ml-2 text-sm font-medium text-gray-200">
-                            Desplegado a Producción
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-sm font-medium text-green-400 mb-3">Herramientas utilizadas</h4>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {availableTools.map(tool => (
-                          <button
-                            key={tool}
-                            type="button"
-                            onClick={() => handleToolSelection(tool)}
-                            className={`py-1 px-2 rounded-full text-xs font-medium transition-colors ${
-                              completionDetails.tools.includes(tool)
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                            }`}
-                          >
-                            {tool}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Otra herramienta..."
-                          className="flex-1 bg-gray-700 text-white rounded-lg p-2 text-sm border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500"
-                          value={newTool}
-                          onChange={(e) => setNewTool(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddNewTool()}
-                        />
-                        <button
-                          onClick={handleAddNewTool}
-                          disabled={!newTool.trim()}
-                          className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white p-2 rounded-lg"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              <div className="mt-1 text-xs sm:text-sm text-green-200 line-clamp-1">
+                {selectedTaskForCompletion && 
+                  tasks.find(t => t.id === selectedTaskForCompletion)?.description}
+              </div>
+            </div>
+            
+            {/* Contenido con scroll */}
+            <div className="p-3 sm:p-4 overflow-y-auto flex-grow">
+              <div className="space-y-3 sm:space-y-4">
+                <div>
+                  <label className="flex items-center text-sm font-medium text-green-400 mb-1 sm:mb-2">
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    ¿Cómo se completó?
+                  </label>
+                  <textarea
+                    name="description"
+                    placeholder="Describe cómo completaste la tarea y los detalles relevantes..."
+                    className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors resize-none h-24"
+                    value={completionDetails.description}
+                    onChange={handleCompletionDetailsChange}
+                  />
                 </div>
                 
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
-                  <button
-                    onClick={() => {
-                      setShowCompletionModal(false);
-                      setSelectedTaskForCompletion(null);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleCompleteTask}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-lg shadow-lg transition-colors"
-                    disabled={!completionDetails.description.trim() || !completionDetails.timeSpent.trim()}
-                  >
-                    <div className="flex items-center">
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Completar Tarea
+                <div>
+                  <label className="flex items-center text-sm font-medium text-green-400 mb-1 sm:mb-2">
+                    <Clock4 className="h-4 w-4 mr-2" />
+                    Tiempo total dedicado
+                  </label>
+                  <input
+                    type="text"
+                    name="timeSpent"
+                    placeholder="Ej: 2 horas, 30 minutos"
+                    className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
+                    value={completionDetails.timeSpent}
+                    onChange={handleCompletionDetailsChange}
+                  />
+                </div>
+                
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-3">
+                  <div className="mb-2">
+                    <h4 className="text-sm font-medium text-green-400 mb-2">Estado del entregable</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="sentToQA"
+                          name="sentToQA"
+                          className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
+                          checked={completionDetails.sentToQA}
+                          onChange={handleCheckboxChange}
+                        />
+                        <label htmlFor="sentToQA" className="ml-2 text-sm font-medium text-gray-200">
+                          Enviado a QA
+                        </label>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="deployedToProduction"
+                          name="deployedToProduction"
+                          className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-green-500 focus:ring-green-500"
+                          checked={completionDetails.deployedToProduction}
+                          onChange={handleCheckboxChange}
+                        />
+                        <label htmlFor="deployedToProduction" className="ml-2 text-sm font-medium text-gray-200 text-xs sm:text-sm">
+                          Desplegado
+                        </label>
+                      </div>
                     </div>
-                  </button>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium text-green-400 mb-2">Objetos utilizados</h4>
+                    <div className="flex flex-wrap gap-1 mb-2 max-h-20 overflow-y-auto p-1">
+                      {availableTools.map(tool => (
+                        <button
+                          key={tool}
+                          type="button"
+                          onClick={() => handleToolSelection(tool)}
+                          className={`py-1 px-1.5 rounded-full text-xs font-medium transition-colors ${
+                            completionDetails.tools.includes(tool)
+                              ? 'bg-green-600 text-white'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          }`}
+                        >
+                          {tool}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        placeholder="Otro objeto..."
+                        className="flex-1 bg-gray-700 text-white rounded-lg p-1.5 text-xs sm:text-sm border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                        value={newTool}
+                        onChange={(e) => setNewTool(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddNewTool()}
+                      />
+                      <button
+                        onClick={handleAddNewTool}
+                        disabled={!newTool.trim()}
+                        className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white p-1.5 rounded-lg"
+                      >
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Botones fijos en la parte inferior */}
+            <div className="flex justify-end gap-2 p-3 sm:p-4 border-t border-gray-800 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setShowCompletionModal(false);
+                  setSelectedTaskForCompletion(null);
+                }}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCompleteTask}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-lg shadow-lg transition-colors flex items-center"
+                disabled={!completionDetails.description.trim() || !completionDetails.timeSpent.trim()}
+              >
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                Completar
+              </button>
             </div>
           </div>
         </div>
@@ -1435,89 +1432,86 @@ function App() {
 
       {/* Task Progress Modal */}
       {showProgressModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl">
-            <div className="flex flex-col">
-              {/* Cabecera */}
-              <div className="bg-gradient-to-r from-purple-800 to-indigo-900 p-5">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-white">Registrar Progreso Diario</h3>
-                  <button 
-                    onClick={() => {
-                      setShowProgressModal(false);
-                      setSelectedTaskForProgress(null);
-                    }}
-                    className="text-gray-200 hover:text-white transition-colors"
-                  >
-                    <XCircle className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="mt-2 text-sm text-purple-200">
-                  {selectedTaskForProgress && 
-                    tasks.find(t => t.id === selectedTaskForProgress)?.description}
-                </div>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-3 overflow-auto max-h-screen">
+          <div className="bg-gray-900 rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            {/* Cabecera fija */}
+            <div className="bg-gradient-to-r from-purple-800 to-indigo-900 p-3 sm:p-4 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base sm:text-lg font-semibold text-white">Registrar Progreso</h3>
+                <button 
+                  onClick={() => {
+                    setShowProgressModal(false);
+                    setSelectedTaskForProgress(null);
+                  }}
+                  className="text-gray-200 hover:text-white transition-colors"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
               </div>
-              
-              {/* Formulario */}
-              <div className="p-6">
-                <div className="space-y-5">
-                  <div>
-                    <label className="flex items-center text-sm font-medium text-purple-400 mb-2">
-                      <FileText className="h-4 w-4 mr-2" />
-                      ¿Qué avances se lograron hoy?
-                    </label>
-                    <textarea
-                      placeholder="Describe los avances realizados en esta tarea..."
-                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors resize-none h-32"
-                      value={progressDetails.description}
-                      onChange={(e) => setProgressDetails(prev => ({ ...prev, description: e.target.value }))}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="flex items-center text-sm font-medium text-purple-400 mb-2">
-                      <Clock4 className="h-4 w-4 mr-2" />
-                      Tiempo dedicado hoy
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej: 2 horas, 30 minutos"
-                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
-                      value={progressDetails.timeSpent}
-                      onChange={(e) => setProgressDetails(prev => ({ ...prev, timeSpent: e.target.value }))}
-                    />
-                    
-                    <div className="mt-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                      <div className="flex items-center text-xs text-gray-400">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>Formatos válidos: "2 horas", "45 minutos", "1.5 horas", etc.</span>
-                      </div>
-                    </div>
-                  </div>
+              <div className="mt-1 text-xs sm:text-sm text-purple-200 line-clamp-1">
+                {selectedTaskForProgress && 
+                  tasks.find(t => t.id === selectedTaskForProgress)?.description}
+              </div>
+            </div>
+            
+            {/* Contenido con scroll */}
+            <div className="p-3 sm:p-4 overflow-y-auto flex-grow">
+              <div className="space-y-3 sm:space-y-4">
+                <div>
+                  <label className="flex items-center text-sm font-medium text-purple-400 mb-1 sm:mb-2">
+                    <FileText className="h-4 w-4 mr-2" />
+                    ¿Qué avances se lograron hoy?
+                  </label>
+                  <textarea
+                    placeholder="Describe los avances realizados en esta tarea..."
+                    className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors resize-none h-24"
+                    value={progressDetails.description}
+                    onChange={(e) => setProgressDetails(prev => ({ ...prev, description: e.target.value }))}
+                  />
                 </div>
                 
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-800">
-                  <button
-                    onClick={() => {
-                      setShowProgressModal(false);
-                      setSelectedTaskForProgress(null);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleAddProgress}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-lg shadow-lg transition-colors"
-                    disabled={!progressDetails.description.trim() || !progressDetails.timeSpent.trim()}
-                  >
-                    <div className="flex items-center">
-                      <Clock4 className="h-4 w-4 mr-1" />
-                      Registrar Progreso
+                <div>
+                  <label className="flex items-center text-sm font-medium text-purple-400 mb-1 sm:mb-2">
+                    <Clock4 className="h-4 w-4 mr-2" />
+                    Tiempo dedicado hoy
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: 2 horas, 30 minutos"
+                    className="w-full bg-gray-800 text-white rounded-lg p-2 border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                    value={progressDetails.timeSpent}
+                    onChange={(e) => setProgressDetails(prev => ({ ...prev, timeSpent: e.target.value }))}
+                  />
+                  
+                  <div className="mt-2 p-2 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-center text-xs text-gray-400">
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>Formatos: "2h", "45min", "1.5 horas", etc.</span>
                     </div>
-                  </button>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Botones fijos en la parte inferior */}
+            <div className="flex justify-end gap-2 p-3 sm:p-4 border-t border-gray-800 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setShowProgressModal(false);
+                  setSelectedTaskForProgress(null);
+                }}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddProgress}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 rounded-lg shadow-lg transition-colors flex items-center"
+                disabled={!progressDetails.description.trim() || !progressDetails.timeSpent.trim()}
+              >
+                <Clock4 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                Registrar
+              </button>
             </div>
           </div>
         </div>
