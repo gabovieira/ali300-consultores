@@ -572,7 +572,7 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
                     <span className="text-gray-300 font-medium">
                       {hoursPerActivity < 1 
                         ? `${Math.round(hoursPerActivity * 60)} minutos` 
-                        : `${hoursPerActivity.toFixed(1)} horas`}
+                        : `${hoursPerActivity.toFixed(2)} horas`}
                     </span>
                   </div>
                 </div>
