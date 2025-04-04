@@ -155,6 +155,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     status: Math.random() > 0.7 ? 'completed' : 'in-progress',
                     type: 'UI',
                     priority: 'media',
+                    feedback: '', // Añadir propiedad feedback obligatoria
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     progress: [
@@ -345,20 +346,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const newTask = await tasksService.create(data, customDate);
+      // Asegurarse de que la tarea tenga la propiedad feedback incluso si está vacía
+      const taskData = {
+        ...data,
+        feedback: data.feedback || '', // Asegurarse de que feedback esté presente
+        createdAt: customDate // Incluir fecha personalizada en el objeto si existe
+      };
+      
+      console.log('Creando tarea con datos:', taskData);
+      
+      const taskId = await tasksService.create(taskData);
+      console.log('Tarea creada con ID:', taskId);
+      
+      // Crear objeto de tarea completo para el estado local
+      const newTask: Task = {
+        id: taskId,
+        description: data.description,
+        requirementId: data.requirementId,
+        status: data.status,
+        type: data.type,
+        priority: data.priority,
+        feedback: data.feedback || '',
+        createdAt: customDate || new Date(),
+        updatedAt: new Date(),
+        progress: data.progress || []
+      };
+      
       // Actualizar la lista de tareas para el requerimiento seleccionado
       if (newTask.requirementId === selectedRequirement) {
         setTasks([...tasks, newTask]);
       }
       // Actualizar la lista de todas las tareas
       setAllTasks([...allTasks, newTask]);
-      return newTask.id || null;
+      return taskId;
     } catch (err) {
       console.error('Error al crear la tarea:', err);
       setError('Error al crear la tarea. Por favor, intenta de nuevo.');
       return null;
     }
-  }, []);
+  }, [currentUser, selectedRequirement, tasks, allTasks]);
 
   const updateTaskStatus = async (id: string, status: Task['status']) => {
     try {
