@@ -860,7 +860,7 @@ function App() {
                     const isSelected = selectedTaskForContextMenu === task.id;
                     
                     return (
-                      <div key={task.id} className="relative">
+                      <div key={task.id} className="mb-2">
                         <div
                           className={`p-3 rounded-lg bg-gray-750 hover:bg-gray-700 border-l-4 border-yellow-500 cursor-pointer transition-all duration-150 ${isSelected ? 'bg-gray-700 ring-1 ring-yellow-400' : ''}`}
                           onClick={() => setSelectedTaskForContextMenu(isSelected ? null : (task.id || null))}
@@ -885,32 +885,31 @@ function App() {
                           </div>
                         </div>
                         
-                        {/* Menú contextual */}
+                        {/* Menú de acciones en línea */}
                         {isSelected && (
-                          <div className="absolute z-10 right-0 mt-1 bg-gray-800 rounded-lg shadow-lg border border-gray-700 w-48 py-1 overflow-hidden">
+                          <div className="mt-1 grid grid-cols-3 gap-1 rounded-lg overflow-hidden">
                             <button 
-                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 flex items-center"
+                              className="px-2 py-1.5 text-sm text-center text-white bg-yellow-600 hover:bg-yellow-500 flex items-center justify-center"
                               onClick={() => {
                                 if (task.id) openProgressModal(task.id);
                                 setSelectedTaskForContextMenu(null);
                               }}
                             >
-                              <Plus className="w-4 h-4 mr-2 text-yellow-400" />
-                              Registrar avance
+                              <Plus className="w-4 h-4 mr-1" />
+                              Avance
                             </button>
                             <button 
-                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 flex items-center"
+                              className="px-2 py-1.5 text-sm text-center text-white bg-green-600 hover:bg-green-500 flex items-center justify-center"
                               onClick={() => {
                                 if (task.id) openCompletionModal(task.id);
                                 setSelectedTaskForContextMenu(null);
                               }}
                             >
-                              <CheckSquare className="w-4 h-4 mr-2 text-green-400" />
-                              Completar tarea
+                              <CheckSquare className="w-4 h-4 mr-1" />
+                              Completar
                             </button>
-                            <hr className="my-1 border-gray-700" />
                             <button 
-                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 flex items-center"
+                              className="px-2 py-1.5 text-sm text-center text-white bg-red-600 hover:bg-red-500 flex items-center justify-center"
                               onClick={() => {
                                 if (task.id && confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
                                   handleDeleteTask(task.id);
@@ -918,8 +917,8 @@ function App() {
                                 setSelectedTaskForContextMenu(null);
                               }}
                             >
-                              <TrashIcon className="w-4 h-4 mr-2 text-red-400" />
-                              Eliminar tarea
+                              <TrashIcon className="w-4 h-4 mr-1" />
+                              Eliminar
                             </button>
                           </div>
                         )}
