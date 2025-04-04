@@ -639,13 +639,24 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = React.memo(({
                   })}
                   
                   {/* Total de adiestramiento */}
-                  <div className="mt-3 pt-2 border-t border-gray-700 flex justify-between">
-                    <span className="text-white">Total adiestramiento:</span>
-                    <span className="text-white font-bold">
-                      {dailyTrainingHours < 1 
-                        ? `${Math.round(dailyTrainingHours * 60)} minutos` 
-                        : `${dailyTrainingHours.toFixed(1)} horas`}
-                    </span>
+                  <div className="mt-3 pt-2 border-t border-gray-700">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-gray-300">Tiempo por actividad:</span>
+                      <span className="text-purple-300 font-medium">
+                        {hoursPerActivity < 1 
+                          ? `${minutesPerActivity} minutos` 
+                          : `${minutesPerActivity} min (${hoursPerActivity.toFixed(2)} h)`}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-white">Total adiestramiento:</span>
+                      <span className="text-white font-bold">
+                        {dailyTrainingHours < 1 
+                          ? `${Math.round(dailyTrainingHours * 60)} minutos` 
+                          : `${dailyTrainingHours.toFixed(1)} horas`}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
