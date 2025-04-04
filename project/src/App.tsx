@@ -2299,54 +2299,75 @@ function App() {
 
       {/* Modal para editar avance */}
       {editingProgress && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Editar avance</h3>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </label>
-              <textarea
-                className="w-full border border-gray-300 rounded p-2"
-                value={editingProgress.description}
-                onChange={(e) => setEditingProgress({
-                  ...editingProgress,
-                  description: e.target.value
-                })}
-                rows={3}
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tiempo dedicado
-              </label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded p-2"
-                value={editingProgress.timeSpent}
-                onChange={(e) => setEditingProgress({
-                  ...editingProgress,
-                  timeSpent: e.target.value
-                })}
-                placeholder="Ej: 2 horas, 30 minutos"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setEditingProgress(null)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveProgressEdit}
-                className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-700"
-              >
-                Guardar cambios
-              </button>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="flex flex-col">
+              {/* Cabecera */}
+              <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">Editar avance</h3>
+                  <button 
+                    onClick={() => setEditingProgress(null)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Formulario */}
+              <div className="p-6">
+                <div className="space-y-5">
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Descripción
+                    </label>
+                    <textarea
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                      value={editingProgress.description}
+                      onChange={(e) => setEditingProgress({
+                        ...editingProgress,
+                        description: e.target.value
+                      })}
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center text-sm font-medium text-cyan-400 mb-2">
+                      <Clock className="h-4 w-4 mr-2" />
+                      Tiempo dedicado
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                      value={editingProgress.timeSpent}
+                      onChange={(e) => setEditingProgress({
+                        ...editingProgress,
+                        timeSpent: e.target.value
+                      })}
+                      placeholder="Ej: 2 horas, 30 minutos"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 px-6 py-4 bg-gray-800 border-t border-gray-700">
+                <button
+                  onClick={() => setEditingProgress(null)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveProgressEdit}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-lg transition-all shadow-md"
+                >
+                  Guardar cambios
+                </button>
+              </div>
             </div>
           </div>
         </div>
