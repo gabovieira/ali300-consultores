@@ -362,7 +362,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateTaskStatus = async (id: string, status: Task['status']) => {
     try {
-      await tasksService.updateStatus(id, status);
+      await tasksService.update(id, { status, updatedAt: new Date() });
       
       // Actualizar la lista de tareas para el requerimiento seleccionado
       const updatedTasks = tasks.map(task => 
@@ -446,7 +446,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTask = useCallback(async (id: string) => {
     try {
-      await tasksService.remove(id);
+      await tasksService.delete(id);
       
       // Actualizar la lista de tareas para el requerimiento seleccionado
       setTasks(tasks.filter(task => task.id !== id));
