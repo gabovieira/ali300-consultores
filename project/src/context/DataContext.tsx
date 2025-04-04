@@ -11,6 +11,7 @@ interface DataContextType {
   selectedRequirement: string | null;
   loading: boolean;
   error: string | null;
+  isTaskUpdating: { [id: string]: boolean }; // Estado de carga por tarea
   
   // Funciones para Requirements
   setSelectedRequirement: (id: string) => void;
@@ -25,9 +26,17 @@ interface DataContextType {
   deleteTask: (id: string) => Promise<void>;
   completeTask: (id: string, details: { description: string; timeSpent: string; sentToQA?: boolean; deployedToProduction?: boolean; tools?: string[] }, customDate?: Date) => Promise<void>;
   addTaskProgress: (id: string, progressDetails: { description: string; timeSpent: string }, customDate?: Date) => Promise<void>;
+  editTaskProgress: (id: string, progressIndex: number, updatedProgress: { description: string; timeSpent: string }) => Promise<void>;
+  deleteTaskProgress: (id: string, progressIndex: number) => Promise<void>;
+  clearError: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// Número máximo de reintentos para operaciones fallidas
+const MAX_RETRIES = 2;
+// Tiempo de espera base entre reintentos (ms)
+const BASE_RETRY_DELAY = 1000;
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, signOut } = useAuth();
@@ -37,6 +46,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedRequirement, setSelectedRequirementId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Añadir estado de carga para operaciones específicas de tareas
+  const [isTaskUpdating, setIsTaskUpdating] = useState<{ [id: string]: boolean }>({});
+
+  // Función para limpiar errores
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // Función genérica para reintentos con retraso exponencial
+  const withRetry = useCallback(async <T,>(
+    operation: () => Promise<T>,
+    errorMessage: string,
+    maxRetries: number = MAX_RETRIES
+  ): Promise<T> => {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (err) {
+        lastError = err;
+        console.error(`Error en intento ${attempt + 1}/${maxRetries + 1}:`, err);
+        
+        if (attempt < maxRetries) {
+          // Esperar con retraso exponencial antes de reintentar
+          const delay = BASE_RETRY_DELAY * Math.pow(2, attempt);
+          console.log(`Reintentando en ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    // Si llegamos aquí, todos los reintentos fallaron
+    setError(errorMessage);
+    throw lastError;
+  }, []);
+
+  // Caché local para tareas
+  const tasksCache = useMemo(() => {
+    const cache = new Map<string, Task>();
+    allTasks.forEach(task => {
+      cache.set(task.id || '', task);
+    });
+    return cache;
+  }, [allTasks]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -210,89 +264,57 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSelectedRequirementId(id);
   };
 
-  // Optimizar funciones con useCallback para evitar recreaciones
+  // Funciones para Requirements
   const addRequirement = useCallback(async (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date): Promise<string | null> => {
     if (!currentUser) {
       setError('Debes iniciar sesión para crear un requerimiento');
       return null;
     }
-
+    
     try {
-      console.log('DataContext: Iniciando creación de requerimiento con datos:', data);
-      console.log('DataContext: Usuario autenticado:', currentUser);
-      
-      // Crear objeto limpio del requerimiento (sin undefined)
-      const requirementData: Omit<Requirement, 'id' | 'createdAt'> & { createdAt: Date } = {
-        name: data.name,
-        status: 'active',
-        userId: currentUser.uid, // Añadir el ID del usuario actual
-        createdAt: customDate || new Date()
-      };
-      
-      // Añadir propiedades opcionales solo si están definidas
-      if (data.tipo) {
-        requirementData.tipo = data.tipo;
-      }
-      
-      if (data.tieneEstimacion !== undefined) {
-        requirementData.tieneEstimacion = data.tieneEstimacion;
-        
-        // Solo añadir tiempoEstimado si tieneEstimacion es true y hay un valor
-        if (data.tieneEstimacion && data.tiempoEstimado) {
-          requirementData.tiempoEstimado = data.tiempoEstimado;
-        }
-      }
-      
-      console.log('DataContext: Objeto de requerimiento limpio a crear:', requirementData);
-      
-      // Intentar crear el requerimiento
-      const newId = await requirementsService.create(requirementData);
-      console.log('DataContext: Requerimiento creado con ID:', newId);
-      
-      // Crear objeto para el estado local
+      // Actualización optimista para mejorar UX
+      const tempId = `temp-${Date.now()}`;
       const newRequirement: Requirement = {
-        id: newId,
+        id: tempId,
         name: data.name,
-        status: 'active',
-        createdAt: requirementData.createdAt,
+        status: data.status || 'active',
+        createdAt: customDate || new Date(),
+        tipo: data.tipo,
+        codTipo: data.codTipo,
+        tieneEstimacion: data.tieneEstimacion,
+        tiempoEstimado: data.tiempoEstimado,
         userId: currentUser.uid
       };
       
-      // Añadir propiedades opcionales al objeto del estado
-      if (data.tipo) {
-        newRequirement.tipo = data.tipo;
-      }
+      // Actualizar UI inmediatamente
+      setRequirements(prev => [...prev, newRequirement]);
       
-      if (data.tieneEstimacion !== undefined) {
-        newRequirement.tieneEstimacion = data.tieneEstimacion;
-        
-        if (data.tieneEstimacion && data.tiempoEstimado) {
-          newRequirement.tiempoEstimado = data.tiempoEstimado;
-        }
-      }
+      // Operación real con reintento
+      const reqId = await withRetry(
+        () => requirementsService.create({
+          ...data,
+          userId: currentUser.uid,
+          createdAt: customDate
+        }),
+        'Error al crear el requisito. Por favor, intenta de nuevo.'
+      );
       
-      setRequirements([...requirements, newRequirement]);
+      // Actualizar el ID temporal por el real
+      setRequirements(prev => 
+        prev.map(req => req.id === tempId ? { ...req, id: reqId } : req)
+      );
       
-      if (!selectedRequirement) {
-        setSelectedRequirementId(newId);
-      }
+      return reqId;
+    } catch (error) {
+      console.error('Error al crear requisito:', error);
       
-      return newId;
-    } catch (err) {
-      console.error('Error detallado al crear requisito:', err);
+      // Eliminar requerimiento optimista en caso de error
+      setRequirements(prev => prev.filter(req => !req.id?.startsWith('temp-')));
       
-      if (err instanceof Error) {
-        console.error('Mensaje de error:', err.message);
-        console.error('Stack trace:', err.stack);
-        setError(`Error al crear el requisito: ${err.message}`);
-      } else {
-        console.error('Tipo de error desconocido:', typeof err);
-        setError('Error al crear el requisito. Por favor, intenta de nuevo.');
-      }
-      
+      setError('Error al crear el requisito. Por favor, intenta de nuevo.');
       return null;
     }
-  }, []);
+  }, [currentUser, withRetry]);
 
   const updateRequirement = useCallback(async (id: string, data: Partial<Requirement>) => {
     try {
@@ -346,66 +368,137 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Asegurarse de que la tarea tenga la propiedad feedback incluso si está vacía
+      // Crear ID temporal para actualización optimista
+      const tempId = `temp-${Date.now()}`;
+      
+      // Asegurarse de que la tarea tenga la propiedad feedback
       const taskData = {
         ...data,
-        feedback: data.feedback || '', // Asegurarse de que feedback esté presente
-        createdAt: customDate // Incluir fecha personalizada en el objeto si existe
-      };
-      
-      console.log('Creando tarea con datos:', taskData);
-      
-      const taskId = await tasksService.create(taskData);
-      console.log('Tarea creada con ID:', taskId);
-      
-      // Crear objeto de tarea completo para el estado local
-      const newTask: Task = {
-        id: taskId,
-        description: data.description,
-        requirementId: data.requirementId,
-        status: data.status,
-        type: data.type,
-        priority: data.priority,
         feedback: data.feedback || '',
         createdAt: customDate || new Date(),
         updatedAt: new Date(),
+        id: tempId // ID temporal
+      };
+      
+      // Actualización optimista en UI
+      const newTask: Task = {
+        ...taskData,
+        id: tempId,
         progress: data.progress || []
       };
       
-      // Actualizar la lista de tareas para el requerimiento seleccionado
+      // Si el requirementId coincide con el seleccionado, actualizar tareas visibles
       if (newTask.requirementId === selectedRequirement) {
-        setTasks([...tasks, newTask]);
+        setTasks(prev => [...prev, newTask]);
       }
-      // Actualizar la lista de todas las tareas
-      setAllTasks([...allTasks, newTask]);
+      
+      // Actualizar todas las tareas
+      setAllTasks(prev => [...prev, newTask]);
+      
+      // Creación real en Firestore con reintentos
+      const taskId = await withRetry(
+        () => tasksService.create(taskData),
+        'Error al crear la tarea. Por favor, intenta de nuevo.'
+      );
+      
+      // Actualizar el ID temporal por el real
+      const finalTask = { ...newTask, id: taskId };
+      
+      setTasks(prev => 
+        prev.map(t => t.id === tempId ? finalTask : t)
+      );
+      
+      setAllTasks(prev => 
+        prev.map(t => t.id === tempId ? finalTask : t)
+      );
+      
       return taskId;
     } catch (err) {
       console.error('Error al crear la tarea:', err);
+      
+      // Eliminar tarea optimista en caso de error
+      setTasks(prev => prev.filter(t => !t.id?.startsWith('temp-')));
+      setAllTasks(prev => prev.filter(t => !t.id?.startsWith('temp-')));
+      
       setError('Error al crear la tarea. Por favor, intenta de nuevo.');
       return null;
     }
-  }, [currentUser, selectedRequirement, tasks, allTasks]);
+  }, [currentUser, selectedRequirement, withRetry]);
 
-  const updateTaskStatus = async (id: string, status: Task['status']) => {
+  // Optimizar updateTaskStatus con actualizaciones optimistas y reintentos
+  const updateTaskStatus = useCallback(async (id: string, status: Task['status']) => {
     try {
-      await tasksService.update(id, { status, updatedAt: new Date() });
+      // Marcar tarea como actualizando
+      setIsTaskUpdating(prev => ({ ...prev, [id]: true }));
       
-      // Actualizar la lista de tareas para el requerimiento seleccionado
+      // Actualización optimista inmediata en UI
       const updatedTasks = tasks.map(task => 
         task.id === id ? { ...task, status, updatedAt: new Date() } : task
-      );
+      ) as Task[];
       setTasks(updatedTasks);
       
-      // Actualizar la lista de todas las tareas
       const updatedAllTasks = allTasks.map(task => 
         task.id === id ? { ...task, status, updatedAt: new Date() } : task
-      );
+      ) as Task[];
       setAllTasks(updatedAllTasks);
+      
+      // Actualización real en Firestore con reintentos
+      await withRetry(
+        () => tasksService.update(id, { status, updatedAt: new Date() }),
+        'Error al actualizar el estado de la tarea. Por favor, intenta de nuevo.'
+      );
     } catch (err) {
       console.error('Error al actualizar el estado de la tarea:', err);
+      // No revertimos la UI porque withRetry ya ha realizado reintentos
       setError('Error al actualizar el estado de la tarea. Por favor, intenta de nuevo.');
+    } finally {
+      // Desmarcar tarea como actualizando
+      setIsTaskUpdating(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
     }
-  };
+  }, [tasks, allTasks, withRetry]);
+
+  // Optimizar deleteTask con actualizaciones optimistas y reintentos
+  const deleteTask = useCallback(async (id: string) => {
+    try {
+      // Marcar tarea como actualizando
+      setIsTaskUpdating(prev => ({ ...prev, [id]: true }));
+      
+      // Guardar una copia en caso de que necesitemos restaurar
+      const taskToDelete = tasks.find(t => t.id === id);
+      
+      // Actualización optimista inmediata en UI
+      setTasks(prev => prev.filter(task => task.id !== id));
+      setAllTasks(prev => prev.filter(task => task.id !== id));
+      
+      // Eliminación real en Firestore con reintentos
+      await withRetry(
+        () => tasksService.delete(id),
+        'Error al eliminar la tarea. Por favor, intenta de nuevo.'
+      );
+    } catch (err) {
+      console.error('Error al eliminar la tarea:', err);
+      
+      // Restaurar tarea en caso de error final
+      const taskToRestore = tasksCache.get(id);
+      if (taskToRestore) {
+        setTasks(prev => [...prev, taskToRestore]);
+        setAllTasks(prev => [...prev, taskToRestore]);
+      }
+      
+      setError('Error al eliminar la tarea. Por favor, intenta de nuevo.');
+    } finally {
+      // Desmarcar tarea como actualizando
+      setIsTaskUpdating(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+    }
+  }, [tasks, tasksCache, withRetry]);
 
   const completeTask = async (
     id: string, 
@@ -469,21 +562,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError('Error al completar la tarea. Por favor, intenta de nuevo.');
     }
   };
-
-  const deleteTask = useCallback(async (id: string) => {
-    try {
-      await tasksService.delete(id);
-      
-      // Actualizar la lista de tareas para el requerimiento seleccionado
-      setTasks(tasks.filter(task => task.id !== id));
-      
-      // Actualizar la lista de todas las tareas
-      setAllTasks(allTasks.filter(task => task.id !== id));
-    } catch (err) {
-      console.error('Error al eliminar la tarea:', err);
-      setError('Error al eliminar la tarea. Por favor, intenta de nuevo.');
-    }
-  }, []);
 
   // Añadir nueva función para agregar progreso diario
   const addTaskProgress = async (
@@ -592,7 +670,159 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Memoizar el valor del contexto para evitar re-renders innecesarios
+  // Añadir función para editar un avance específico
+  const editTaskProgress = useCallback(async (
+    id: string,
+    progressIndex: number,
+    updatedProgress: {
+      description: string;
+      timeSpent: string;
+    }
+  ) => {
+    try {
+      // Marcar tarea como actualizando
+      setIsTaskUpdating(prev => ({ ...prev, [id]: true }));
+      
+      // Guardar una copia del estado actual por si hay que revertir
+      const originalTasks = [...tasks];
+      const originalAllTasks = [...allTasks];
+      
+      // Actualización optimista en UI
+      const updatedTasks = tasks.map(task => {
+        if (task.id === id && task.progress && task.progress.length > progressIndex) {
+          const newProgress = [...task.progress];
+          newProgress[progressIndex] = {
+            ...newProgress[progressIndex],
+            description: updatedProgress.description,
+            timeSpent: updatedProgress.timeSpent
+          };
+          
+          return {
+            ...task,
+            progress: newProgress,
+            updatedAt: new Date()
+          };
+        }
+        return task;
+      });
+      
+      setTasks(updatedTasks as Task[]);
+      
+      const updatedAllTasks = allTasks.map(task => {
+        if (task.id === id && task.progress && task.progress.length > progressIndex) {
+          const newProgress = [...task.progress];
+          newProgress[progressIndex] = {
+            ...newProgress[progressIndex],
+            description: updatedProgress.description,
+            timeSpent: updatedProgress.timeSpent
+          };
+          
+          return {
+            ...task,
+            progress: newProgress,
+            updatedAt: new Date()
+          };
+        }
+        return task;
+      });
+      
+      setAllTasks(updatedAllTasks as Task[]);
+      
+      // Actualización real en Firestore con reintentos
+      await withRetry(
+        () => tasksService.editTaskProgress(id, progressIndex, updatedProgress),
+        'Error al editar el avance de la tarea. Por favor, intenta de nuevo.'
+      );
+    } catch (err) {
+      console.error('Error al editar el avance de la tarea:', err);
+      setError('Error al editar el avance de la tarea. Por favor, intenta de nuevo.');
+    } finally {
+      // Desmarcar tarea como actualizando
+      setIsTaskUpdating(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+    }
+  }, [tasks, allTasks, withRetry]);
+
+  // Añadir función para eliminar un avance específico
+  const deleteTaskProgress = useCallback(async (
+    id: string,
+    progressIndex: number
+  ) => {
+    try {
+      // Marcar tarea como actualizando
+      setIsTaskUpdating(prev => ({ ...prev, [id]: true }));
+      
+      // Guardar una copia del estado actual por si hay que revertir
+      const originalTasks = [...tasks];
+      const originalAllTasks = [...allTasks];
+      
+      // Actualización optimista en UI
+      const updatedTasks = tasks.map(task => {
+        if (task.id === id && task.progress) {
+          const newProgress = task.progress.filter((_, idx) => idx !== progressIndex);
+          
+          // Si era el último avance y la tarea no está completada, cambiar a pendiente
+          let status = task.status;
+          if (newProgress.length === 0 && status !== 'completed') {
+            status = 'pending';
+          }
+          
+          return {
+            ...task,
+            progress: newProgress,
+            status,
+            updatedAt: new Date()
+          };
+        }
+        return task;
+      });
+      
+      setTasks(updatedTasks as Task[]);
+      
+      const updatedAllTasks = allTasks.map(task => {
+        if (task.id === id && task.progress) {
+          const newProgress = task.progress.filter((_, idx) => idx !== progressIndex);
+          
+          // Si era el último avance y la tarea no está completada, cambiar a pendiente
+          let status = task.status;
+          if (newProgress.length === 0 && status !== 'completed') {
+            status = 'pending';
+          }
+          
+          return {
+            ...task,
+            progress: newProgress,
+            status,
+            updatedAt: new Date()
+          };
+        }
+        return task;
+      });
+      
+      setAllTasks(updatedAllTasks as Task[]);
+      
+      // Actualización real en Firestore con reintentos
+      await withRetry(
+        () => tasksService.deleteTaskProgress(id, progressIndex),
+        'Error al eliminar el avance de la tarea. Por favor, intenta de nuevo.'
+      );
+    } catch (err) {
+      console.error('Error al eliminar el avance de la tarea:', err);
+      setError('Error al eliminar el avance de la tarea. Por favor, intenta de nuevo.');
+    } finally {
+      // Desmarcar tarea como actualizando
+      setIsTaskUpdating(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+    }
+  }, [tasks, allTasks, withRetry]);
+
+  // Memoizar el valor del contexto
   const value = useMemo(() => ({
     currentUser,
     requirements,
@@ -601,6 +831,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     selectedRequirement,
     loading,
     error,
+    isTaskUpdating,
     setSelectedRequirement,
     addRequirement,
     updateRequirement,
@@ -610,7 +841,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateTaskStatus,
     deleteTask,
     completeTask,
-    addTaskProgress
+    addTaskProgress,
+    editTaskProgress,
+    deleteTaskProgress,
+    clearError
   }), [
     currentUser,
     requirements,
@@ -619,6 +853,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     selectedRequirement,
     loading,
     error,
+    isTaskUpdating,
     addRequirement,
     updateRequirement,
     deleteRequirement,
@@ -627,7 +862,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateTaskStatus,
     deleteTask,
     completeTask,
-    addTaskProgress
+    addTaskProgress,
+    editTaskProgress,
+    deleteTaskProgress,
+    clearError
   ]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

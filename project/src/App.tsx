@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
-import { Requirement, Task } from './services/databaseService';
+import { Requirement, Task, ProgressEntry } from './services/databaseService';
 import { WorkTimeTracker } from './components/WorkTimeTracker';
 import Icon from './components/Icon';
 import AuthScreen from './components/AuthScreen';
@@ -55,7 +55,9 @@ function App() {
     deleteTask,
     updateRequirement,
     deleteRequirement,
-    addTaskProgress
+    addTaskProgress,
+    editTaskProgress,
+    deleteTaskProgress
   } = useData();
 
   // Si no hay usuario autenticado, mostrar la página de bienvenida en lugar de la pantalla de autenticación
@@ -144,6 +146,13 @@ function App() {
     'Script (DELETE)', 'Función (.fnc)', 'Reporte (.rdf)'
   ]);
   const [newTool, setNewTool] = useState('');
+
+  const [editingProgress, setEditingProgress] = useState<{ 
+    taskId: string; 
+    progressIndex: number; 
+    description: string; 
+    timeSpent: string; 
+  } | null>(null);
 
   const handleSignOut = async () => {
     try {
@@ -496,6 +505,45 @@ function App() {
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
       alert('Error al actualizar el perfil. Por favor, inténtalo de nuevo.');
+    }
+  };
+
+  const handleEditProgress = (taskId: string, progressIndex: number, currentProgress: ProgressEntry) => {
+    setEditingProgress({
+      taskId,
+      progressIndex,
+      description: currentProgress.description,
+      timeSpent: currentProgress.timeSpent
+    });
+  };
+
+  const handleSaveProgressEdit = async () => {
+    if (!editingProgress) return;
+    
+    try {
+      await editTaskProgress(
+        editingProgress.taskId,
+        editingProgress.progressIndex,
+        {
+          description: editingProgress.description,
+          timeSpent: editingProgress.timeSpent
+        }
+      );
+      
+      // Cerrar el modal de edición
+      setEditingProgress(null);
+    } catch (error) {
+      console.error('Error al guardar los cambios:', error);
+    }
+  };
+
+  const handleDeleteProgress = async (taskId: string, progressIndex: number) => {
+    if (window.confirm('¿Estás seguro de eliminar este avance? Esta acción no se puede deshacer.')) {
+      try {
+        await deleteTaskProgress(taskId, progressIndex);
+      } catch (error) {
+        console.error('Error al eliminar el avance:', error);
+      }
     }
   };
 
@@ -1125,14 +1173,14 @@ function App() {
                               <div className="mt-2 p-2 bg-gray-700 rounded text-sm">
                                 <div className="font-medium text-purple-400">Historial de progreso:</div>
                                 <div className="max-h-32 overflow-y-auto">
-                                  {task.progress.map((entry, index) => (
+                                  {task.progress.map((progress, index) => (
                                     <div key={index} className="border-l-2 border-purple-500 pl-2 py-1 mt-1">
-                                      <div className="text-gray-300">{entry.description}</div>
+                                      <div className="text-gray-300">{progress.description}</div>
                                       <div className="text-gray-400 text-xs flex justify-between">
-                                        <span>Tiempo: {entry.timeSpent}</span>
-                                        <span>{entry.date instanceof Date 
-                                          ? entry.date.toLocaleDateString()
-                                          : new Date(entry.date).toLocaleDateString()}</span>
+                                        <span>Tiempo: {progress.timeSpent}</span>
+                                        <span>{progress.date instanceof Date 
+                                          ? progress.date.toLocaleDateString()
+                                          : new Date(progress.date).toLocaleDateString()}</span>
                                       </div>
                                     </div>
                                   ))}
@@ -2202,6 +2250,61 @@ function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar avance */}
+      {editingProgress && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">Editar avance</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descripción
+              </label>
+              <textarea
+                className="w-full border border-gray-300 rounded p-2"
+                value={editingProgress.description}
+                onChange={(e) => setEditingProgress({
+                  ...editingProgress,
+                  description: e.target.value
+                })}
+                rows={3}
+              />
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tiempo dedicado
+              </label>
+              <input
+                type="text"
+                className="w-full border border-gray-300 rounded p-2"
+                value={editingProgress.timeSpent}
+                onChange={(e) => setEditingProgress({
+                  ...editingProgress,
+                  timeSpent: e.target.value
+                })}
+                placeholder="Ej: 2 horas, 30 minutos"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setEditingProgress(null)}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveProgressEdit}
+                className="px-4 py-2 bg-blue-600 rounded text-white hover:bg-blue-700"
+              >
+                Guardar cambios
+              </button>
             </div>
           </div>
         </div>

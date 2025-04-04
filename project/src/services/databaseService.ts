@@ -512,5 +512,99 @@ export const tasksService = {
       console.error('Error al añadir progreso a la tarea:', error);
       throw error;
     }
+  },
+
+  // Editar un avance específico de una tarea
+  editTaskProgress: async (
+    taskId: string,
+    progressIndex: number,
+    updatedProgress: {
+      description: string;
+      timeSpent: string;
+    }
+  ): Promise<void> => {
+    try {
+      const taskRef = doc(db, 'tasks', taskId);
+      const taskDoc = await getDoc(taskRef);
+      
+      if (!taskDoc.exists()) {
+        throw new Error('La tarea no existe');
+      }
+      
+      const currentTask = taskDoc.data();
+      const currentProgress = currentTask.progress || [];
+      
+      if (progressIndex < 0 || progressIndex >= currentProgress.length) {
+        throw new Error('Índice de avance inválido');
+      }
+      
+      // Crear una copia del array de avances
+      const updatedProgressArray = [...currentProgress];
+      
+      // Actualizar el avance específico
+      updatedProgressArray[progressIndex] = {
+        ...updatedProgressArray[progressIndex],
+        description: updatedProgress.description,
+        timeSpent: updatedProgress.timeSpent,
+        // Mantener fecha original
+        date: updatedProgressArray[progressIndex].date,
+        createdAt: updatedProgressArray[progressIndex].createdAt,
+        // Añadir timestamp de edición
+        updatedAt: new Date()
+      };
+      
+      // Actualizar la tarea con el array modificado
+      await updateDoc(taskRef, {
+        progress: updatedProgressArray,
+        updatedAt: new Date()
+      });
+      
+    } catch (error) {
+      console.error('Error al editar avance de la tarea:', error);
+      throw error;
+    }
+  },
+  
+  // Eliminar un avance específico de una tarea
+  deleteTaskProgress: async (
+    taskId: string,
+    progressIndex: number
+  ): Promise<void> => {
+    try {
+      const taskRef = doc(db, 'tasks', taskId);
+      const taskDoc = await getDoc(taskRef);
+      
+      if (!taskDoc.exists()) {
+        throw new Error('La tarea no existe');
+      }
+      
+      const currentTask = taskDoc.data();
+      const currentProgress = currentTask.progress || [];
+      
+      if (progressIndex < 0 || progressIndex >= currentProgress.length) {
+        throw new Error('Índice de avance inválido');
+      }
+      
+      // Eliminar el avance específico
+      const updatedProgressArray = currentProgress.filter((_, index) => index !== progressIndex);
+      
+      // Si era el último avance y la tarea no está completada, cambiar estado a pendiente
+      let updates: any = {
+        progress: updatedProgressArray,
+        updatedAt: new Date()
+      };
+      
+      // Si no quedan avances y la tarea no está completada, cambiar a pendiente
+      if (updatedProgressArray.length === 0 && currentTask.status !== 'completed') {
+        updates.status = 'pending';
+      }
+      
+      // Actualizar la tarea con el array modificado
+      await updateDoc(taskRef, updates);
+      
+    } catch (error) {
+      console.error('Error al eliminar avance de la tarea:', error);
+      throw error;
+    }
   }
 }; 
