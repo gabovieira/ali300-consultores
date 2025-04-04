@@ -837,6 +837,82 @@ function App() {
                   ))}
                 </div>
               </div>
+
+              {/* Tareas en Progreso */}
+              <div className="bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <h2 className="text-base sm:text-lg font-semibold flex items-center">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-yellow-400" />
+                    Tareas Activas del Día
+                  </h2>
+                  <button
+                    onClick={() => setActiveView('pending')}
+                    className="text-xs sm:text-sm text-cyan-400 hover:underline"
+                  >
+                    Ver todas
+                  </button>
+                </div>
+                
+                <div className="space-y-1 sm:space-y-2">
+                  {allTasks.filter(task => task.status === 'in-progress').slice(0, 5).map((task) => {
+                    const requirement = requirements.find(req => req.id === task.requirementId);
+                    
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-3 rounded-lg bg-gray-750 hover:bg-gray-700 border-l-4 border-yellow-500"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-600 text-white`}>
+                              {requirement?.tipo || 'REQ'}
+                            </span>
+                            <div className="font-medium text-sm sm:text-base text-yellow-300">{task.description}</div>
+                          </div>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (task.id) openProgressModal(task.id);
+                              }}
+                              className="p-1 rounded-full bg-yellow-600 hover:bg-yellow-500 transition"
+                              title="Añadir avance"
+                            >
+                              <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (task.id) openCompletionModal(task.id);
+                              }}
+                              className="p-1 rounded-full bg-green-600 hover:bg-green-500 transition"
+                              title="Completar tarea"
+                            >
+                              <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-400 gap-1 sm:gap-3">
+                          <div>Requerimiento: {requirement?.name || 'Desconocido'}</div>
+                          <div className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1 text-gray-400" />
+                            {task.progress && task.progress.length > 0 
+                              ? `Último avance: ${new Date(task.progress[task.progress.length - 1].date).toLocaleDateString()}`
+                              : 'Sin avances registrados'}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {allTasks.filter(task => task.status === 'in-progress').length === 0 && (
+                    <div className="text-center py-4 text-gray-500">
+                      No tienes tareas activas en este momento
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
