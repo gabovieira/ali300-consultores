@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { User } from 'firebase/auth';
+import * as authService from '../services/authService';
 import { requirementsService, tasksService, Requirement, Task, ProgressEntry } from '../services/databaseService';
 import { useAuth } from './AuthContext';
 
@@ -207,8 +209,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSelectedRequirementId(id);
   };
 
-  // Funciones para Requirements
-  const addRequirement = async (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date): Promise<string | null> => {
+  // Optimizar funciones con useCallback para evitar recreaciones
+  const addRequirement = useCallback(async (data: Omit<Requirement, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date): Promise<string | null> => {
     if (!currentUser) {
       setError('Debes iniciar sesión para crear un requerimiento');
       return null;
@@ -289,9 +291,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return null;
     }
-  };
+  }, []);
 
-  const updateRequirement = async (id: string, data: Partial<Requirement>) => {
+  const updateRequirement = useCallback(async (id: string, data: Partial<Requirement>) => {
     try {
       await requirementsService.update(id, data);
       setRequirements(
@@ -301,9 +303,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error al actualizar requisito:', err);
       setError('Error al actualizar el requisito. Por favor, intenta de nuevo.');
     }
-  };
+  }, []);
 
-  const deleteRequirement = async (id: string) => {
+  const deleteRequirement = useCallback(async (id: string) => {
     try {
       // Primero obtenemos todas las tareas asociadas a este requerimiento
       const requirementTasks = tasks.filter(task => task.requirementId === id);
@@ -333,10 +335,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error al eliminar requisito:', err);
       setError('Error al eliminar el requisito. Por favor, intenta de nuevo.');
     }
-  };
+  }, []);
 
   // Funciones para Tasks
-  const addTask = async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date) => {
+  const addTask = useCallback(async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>, customDate?: Date) => {
     if (!currentUser) {
       setError('Debes iniciar sesión para crear una tarea');
       return null;
@@ -356,7 +358,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError('Error al crear la tarea. Por favor, intenta de nuevo.');
       return null;
     }
-  };
+  }, []);
 
   const updateTaskStatus = async (id: string, status: Task['status']) => {
     try {
@@ -442,7 +444,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const deleteTask = async (id: string) => {
+  const deleteTask = useCallback(async (id: string) => {
     try {
       await tasksService.remove(id);
       
@@ -455,7 +457,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error al eliminar la tarea:', err);
       setError('Error al eliminar la tarea. Por favor, intenta de nuevo.');
     }
-  };
+  }, []);
 
   // Añadir nueva función para agregar progreso diario
   const addTaskProgress = async (
@@ -564,7 +566,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value: DataContextType = {
+  // Memoizar el valor del contexto para evitar re-renders innecesarios
+  const value = useMemo(() => ({
+    currentUser,
     requirements,
     tasks,
     allTasks,
@@ -581,7 +585,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteTask,
     completeTask,
     addTaskProgress
-  };
+  }), [
+    currentUser,
+    requirements,
+    tasks,
+    allTasks,
+    selectedRequirement,
+    loading,
+    error,
+    addRequirement,
+    updateRequirement,
+    deleteRequirement,
+    completeRequirement,
+    addTask,
+    updateTaskStatus,
+    deleteTask,
+    completeTask,
+    addTaskProgress
+  ]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

@@ -1,35 +1,44 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src')
+  server: {
+    port: 5173,
+    strictPort: false,
+    hmr: {
+      overlay: false,
     },
-    dedupe: ['react', 'react-dom', 'lucide-react']
+    middlewareMode: false,
   },
   build: {
     outDir: 'dist',
-    sourcemap: false,
-    minify: 'terser',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom'],
-          'lucide-icons': ['lucide-react']
-        }
-      }
-    }
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+        },
+      },
+    },
   },
-  server: {
-    port: 5173,
-    strictPort: true,
-    host: true
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'firebase/app',
+      'firebase/firestore',
+      'firebase/auth',
+    ],
   },
-  preview: {
-    port: 4173
-  }
+  clearScreen: false,
+  logLevel: 'error',
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Clock, Check, Calendar, Briefcase, BookOpen, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react';
 import { Task, Requirement } from '../services/databaseService';
 import { Timestamp } from 'firebase/firestore';
@@ -10,7 +10,28 @@ interface WorkTimeTrackerProps {
   requirements: Requirement[];
 }
 
-export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
+// Función auxiliar extraída fuera del componente para evitar recreaciones
+const extractHoursFromTimeString = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  
+  // Verificar si ya es un número (por ejemplo "2" o "2.5")
+  const directNumber = parseFloat(timeStr);
+  if (!isNaN(directNumber) && directNumber >= 0) {
+    return directNumber;
+  }
+  
+  // Buscar horas
+  const hoursMatch = timeStr.match(/(\d+(\.\d+)?)\s*hora/i);
+  const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
+  
+  // Buscar minutos
+  const minutesMatch = timeStr.match(/(\d+)\s*minuto/i);
+  const minutes = minutesMatch ? parseInt(minutesMatch[1]) / 60 : 0;
+  
+  return hours + minutes;
+};
+
+export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = React.memo(({
   selectedDate,
   tasks,
   requirements
@@ -25,142 +46,33 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [visibleTasks, setVisibleTasks] = useState<Task[]>([]);
 
-  // Filtrar tareas completadas para la fecha seleccionada
-  const completedTasks = tasks.filter(task => {
-    if (task.status !== 'completed' || !task.completionDetails?.completedAt) return false;
-    
-    const completedAt = task.completionDetails.completedAt instanceof Timestamp 
-      ? task.completionDetails.completedAt.toDate() 
-      : task.completionDetails.completedAt instanceof Date
-        ? task.completionDetails.completedAt
-        : new Date(task.completionDetails.completedAt);
-    
-    return completedAt.toDateString() === selectedDate.toDateString();
-  });
-
-  // Filtrar tareas con progreso en la fecha seleccionada
-  const progressTasks = tasks.filter(task => {
-    if (!task.progress || task.progress.length === 0) return false;
-    
-    return task.progress.some(entry => {
-      const entryDate = entry.date instanceof Timestamp 
-        ? entry.date.toDate() 
-        : entry.date instanceof Date
-          ? entry.date
-          : new Date(entry.date);
+  // Memoizar cálculos pesados para evitar recálculos innecesarios en cada renderización
+  const { 
+    completedTasks, 
+    progressTasks, 
+    allActivityTasks, 
+    taskGroups, 
+    validatedTotalHours, 
+    totalDailyActivities 
+  } = useMemo(() => {
+    // Filtrar tareas completadas para la fecha seleccionada
+    const completedTasks = tasks.filter(task => {
+      if (task.status !== 'completed' || !task.completionDetails?.completedAt) return false;
       
-      return entryDate.toDateString() === selectedDate.toDateString();
-    });
-  });
-
-  // Combinar tareas completadas y tareas con progreso, eliminando duplicados
-  const allActivityTasks = [...completedTasks];
-  
-  progressTasks.forEach(progTask => {
-    if (!allActivityTasks.some(task => task.id === progTask.id)) {
-      allActivityTasks.push(progTask);
-    }
-  });
-
-  // Agrupar tareas por requerimiento para una mejor visualización
-  const tasksByRequirement: { [reqId: string]: Task[] } = {};
-  
-  allActivityTasks.forEach(task => {
-    if (!tasksByRequirement[task.requirementId]) {
-      tasksByRequirement[task.requirementId] = [];
-    }
-    tasksByRequirement[task.requirementId].push(task);
-  });
-  
-  // Convertir a array de grupos para navegar entre ellos
-  const taskGroups = Object.keys(tasksByRequirement).map(reqId => ({
-    requirementId: reqId,
-    tasks: tasksByRequirement[reqId]
-  }));
-  
-  // Calcular horas totales trabajadas (incluidas las de progreso)
-  const totalHours = tasks.reduce((total, task) => {
-    let taskHours = 0;
-    
-    // Sumar horas de tareas completadas hoy
-    if (task.status === 'completed' && task.completionDetails) {
       const completedAt = task.completionDetails.completedAt instanceof Timestamp 
         ? task.completionDetails.completedAt.toDate() 
         : task.completionDetails.completedAt instanceof Date
           ? task.completionDetails.completedAt
           : new Date(task.completionDetails.completedAt);
       
-      if (completedAt.toDateString() === selectedDate.toDateString()) {
-        const timeStr = task.completionDetails.timeSpent;
-        // Intentar convertir el string de tiempo a horas
-        const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
-        // Validar que las horas sean razonables (menos de 24 horas por tarea)
-        taskHours += hours > 0 && hours < 24 ? hours : 0;
-      }
-    }
-    
-    // Sumar horas de progreso registradas hoy
-    if (task.progress && task.progress.length > 0) {
-      task.progress.forEach(entry => {
-        const entryDate = entry.date instanceof Timestamp 
-          ? entry.date.toDate() 
-          : entry.date instanceof Date
-            ? entry.date
-            : new Date(entry.date);
-        
-        if (entryDate.toDateString() === selectedDate.toDateString()) {
-          const timeStr = entry.timeSpent;
-          const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
-          // Validar que las horas sean razonables (menos de 24 horas por entrada)
-          taskHours += hours > 0 && hours < 24 ? hours : 0;
-        }
-      });
-    }
-    
-    // Imprimir para depuración
-    if (taskHours > 0) {
-      console.log(`Tarea: ${task.description}, Horas: ${taskHours}`);
-    }
-    
-    return total + taskHours;
-  }, 0);
+      return completedAt.toDateString() === selectedDate.toDateString();
+    });
 
-  // Asegurar que el total de horas sea razonable (no más de 24 horas diarias)
-  const validatedTotalHours = Math.min(totalHours, 24);
-  
-  console.log(`Total de horas calculadas: ${totalHours}, Horas validadas: ${validatedTotalHours}`);
-  
-  // Función auxiliar para extraer horas de strings como "2 horas", "30 minutos"
-  const extractHoursFromTimeString = (timeStr: string): number => {
-    if (!timeStr) return 0;
-    
-    // Verificar si ya es un número (por ejemplo "2" o "2.5")
-    const directNumber = parseFloat(timeStr);
-    if (!isNaN(directNumber) && directNumber >= 0) {
-      return directNumber;
-    }
-    
-    // Buscar horas
-    const hoursMatch = timeStr.match(/(\d+(\.\d+)?)\s*hora/i);
-    const hours = hoursMatch ? parseFloat(hoursMatch[1]) : 0;
-    
-    // Buscar minutos
-    const minutesMatch = timeStr.match(/(\d+)\s*minuto/i);
-    const minutes = minutesMatch ? parseInt(minutesMatch[1]) / 60 : 0;
-    
-    return hours + minutes;
-  };
-
-  // Calcular el número total de actividades para el cálculo de adiestramiento
-  const totalDailyActivities = allActivityTasks.reduce((total, task) => {
-    let taskActivities = 0;
-    
-    // Si la tarea está completada, cuenta como 1 actividad
-    if (task.status === 'completed') {
-      taskActivities = 1;
-    } else {
-      // Si tiene avances hoy, contar cada avance como una actividad separada
-      const todaysProgressCount = task.progress?.filter(entry => {
+    // Filtrar tareas con progreso en la fecha seleccionada
+    const progressTasks = tasks.filter(task => {
+      if (!task.progress || task.progress.length === 0) return false;
+      
+      return task.progress.some(entry => {
         const entryDate = entry.date instanceof Timestamp 
           ? entry.date.toDate() 
           : entry.date instanceof Date
@@ -168,37 +80,156 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
             : new Date(entry.date);
         
         return entryDate.toDateString() === selectedDate.toDateString();
-      }).length || 0;
-      
-      taskActivities = todaysProgressCount;
-    }
-    
-    console.log(`Tarea ${task.description}: ${taskActivities} actividades`);
-    return total + taskActivities;
-  }, 0);
-  
-  console.log(`Total actividades diarias: ${totalDailyActivities}`);
-  
-  // Verificar si el usuario es trainee y tiene horas de adiestramiento
-  const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
-  const hasTrainingProgram = isTrainee && currentUser?.userData?.adiestramiento;
-  const dailyTrainingHours = hasTrainingProgram ? currentUser?.userData?.horasAdiestramiento || 0 : 0;
-  
-  // Convertir horas de adiestramiento a minutos para una distribución exacta
-  const dailyTrainingMinutes = Math.round(dailyTrainingHours * 60);
-  const minutesPerActivity = totalDailyActivities > 0 ? Math.floor(dailyTrainingMinutes / totalDailyActivities) : dailyTrainingMinutes;
-  const hoursPerActivity = minutesPerActivity / 60;
-  
-  const workHours = 8 - dailyTrainingHours;
+      });
+    });
 
-  // Calcular horas restantes de trabajo
+    // Combinar tareas completadas y tareas con progreso, eliminando duplicados
+    const allActivityTasks = [...completedTasks];
+    
+    progressTasks.forEach(progTask => {
+      if (!allActivityTasks.some(task => task.id === progTask.id)) {
+        allActivityTasks.push(progTask);
+      }
+    });
+
+    // Agrupar tareas por requerimiento para una mejor visualización
+    const tasksByRequirement: { [reqId: string]: Task[] } = {};
+    
+    allActivityTasks.forEach(task => {
+      if (!tasksByRequirement[task.requirementId]) {
+        tasksByRequirement[task.requirementId] = [];
+      }
+      tasksByRequirement[task.requirementId].push(task);
+    });
+    
+    // Convertir a array de grupos para navegar entre ellos
+    const taskGroups = Object.keys(tasksByRequirement).map(reqId => ({
+      requirementId: reqId,
+      tasks: tasksByRequirement[reqId]
+    }));
+    
+    // Calcular horas totales trabajadas (incluidas las de progreso) - optimizado
+    const totalHours = tasks.reduce((total, task) => {
+      let taskHours = 0;
+      
+      // Sumar horas de tareas completadas hoy
+      if (task.status === 'completed' && task.completionDetails) {
+        const completedAt = task.completionDetails.completedAt instanceof Timestamp 
+          ? task.completionDetails.completedAt.toDate() 
+          : task.completionDetails.completedAt instanceof Date
+            ? task.completionDetails.completedAt
+            : new Date(task.completionDetails.completedAt);
+        
+        if (completedAt.toDateString() === selectedDate.toDateString()) {
+          const timeStr = task.completionDetails.timeSpent;
+          const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
+          taskHours += hours > 0 && hours < 24 ? hours : 0;
+        }
+      }
+      
+      // Sumar horas de progreso registradas hoy
+      if (task.progress && task.progress.length > 0) {
+        task.progress.forEach(entry => {
+          const entryDate = entry.date instanceof Timestamp 
+            ? entry.date.toDate() 
+            : entry.date instanceof Date
+              ? entry.date
+              : new Date(entry.date);
+          
+          if (entryDate.toDateString() === selectedDate.toDateString()) {
+            const timeStr = entry.timeSpent;
+            const hours = parseFloat(timeStr) || extractHoursFromTimeString(timeStr);
+            taskHours += hours > 0 && hours < 24 ? hours : 0;
+          }
+        });
+      }
+      
+      return total + taskHours;
+    }, 0);
+
+    // Asegurar que el total de horas sea razonable (no más de 24 horas diarias)
+    const validatedTotalHours = Math.min(totalHours, 24);
+    
+    // Calcular el número total de actividades para el cálculo de adiestramiento
+    const totalDailyActivities = allActivityTasks.reduce((total, task) => {
+      let taskActivities = 0;
+      
+      // Si la tarea está completada, cuenta como 1 actividad
+      if (task.status === 'completed') {
+        taskActivities = 1;
+      } else {
+        // Si tiene avances hoy, contar cada avance como una actividad separada
+        const todaysProgressCount = task.progress?.filter(entry => {
+          const entryDate = entry.date instanceof Timestamp 
+            ? entry.date.toDate() 
+            : entry.date instanceof Date
+              ? entry.date
+              : new Date(entry.date);
+          
+          return entryDate.toDateString() === selectedDate.toDateString();
+        }).length || 0;
+        
+        taskActivities = todaysProgressCount;
+      }
+      
+      return total + taskActivities;
+    }, 0);
+
+    return {
+      completedTasks,
+      progressTasks,
+      allActivityTasks,
+      taskGroups,
+      validatedTotalHours,
+      totalDailyActivities
+    };
+  }, [tasks, selectedDate]); // Solo recalcular cuando cambian las tareas o la fecha
+
+  // Memoizar valores derivados
+  const { isTrainee, hasTrainingProgram, dailyTrainingHours, workHours, 
+          dailyTrainingMinutes, minutesPerActivity, hoursPerActivity } = useMemo(() => {
+    // Verificar si el usuario es trainee y tiene horas de adiestramiento
+    const isTrainee = currentUser?.userData?.developerLevel === 'trainee';
+    const hasTrainingProgram = isTrainee && currentUser?.userData?.adiestramiento;
+    const dailyTrainingHours = hasTrainingProgram ? currentUser?.userData?.horasAdiestramiento || 0 : 0;
+    
+    // Convertir horas de adiestramiento a minutos para una distribución exacta
+    const dailyTrainingMinutes = Math.round(dailyTrainingHours * 60);
+    const minutesPerActivity = totalDailyActivities > 0 
+      ? Math.floor(dailyTrainingMinutes / totalDailyActivities) 
+      : dailyTrainingMinutes;
+    const hoursPerActivity = minutesPerActivity / 60;
+    
+    const workHours = 8 - dailyTrainingHours;
+
+    return {
+      isTrainee,
+      hasTrainingProgram,
+      dailyTrainingHours,
+      workHours,
+      dailyTrainingMinutes,
+      minutesPerActivity,
+      hoursPerActivity
+    };
+  }, [currentUser, totalDailyActivities]);
+
+  // Derivar valores finales sin recálculos
   const remainingWorkHours = Math.max(workHours - validatedTotalHours, 0);
-  
-  // Verificar si se han excedido las horas de trabajo (solo para actividades, no adiestramiento)
   const exceededHours = validatedTotalHours > workHours;
-  
-  // Mostrar advertencia solo para usuarios con programa de adiestramiento cuando exceden sus horas
   const showExceededWarning = hasTrainingProgram && exceededHours;
+
+  // Optimizar funciones con useCallback para prevenir recreaciones
+  const goToPreviousTask = useCallback(() => {
+    if (currentTaskIndex > 0) {
+      setCurrentTaskIndex(prev => prev - 1);
+    }
+  }, [currentTaskIndex]);
+
+  const goToNextTask = useCallback(() => {
+    if (allActivityTasks.length > 0 && currentTaskIndex < allActivityTasks.length - 1) {
+      setCurrentTaskIndex(prev => prev + 1);
+    }
+  }, [allActivityTasks.length, currentTaskIndex]);
 
   // Calcular horas de adiestramiento automáticamente
   useEffect(() => {
@@ -212,31 +243,39 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
       // Generar descripción basada en las tareas del día
       let description = 'Se recibió adiestramiento para realizar: ';
       
-      // Agregar información de todas las tareas con actividad
-      allActivityTasks.forEach((task, index) => {
+      // Agregar información de todas las tareas con actividad (limitado a 3 para rendimiento)
+      const limitedTasks = allActivityTasks.slice(0, 3);
+      limitedTasks.forEach((task, index) => {
         const requirement = requirements.find(r => r.id === task.requirementId);
         
         description += `${index > 0 ? ', ' : ''}la tarea "${task.description}" del requerimiento ${requirement?.tipo || 'REQ'}: ${requirement?.name || 'Desconocido'}`;
         
-        // Agregar detalles dependiendo del estado de la tarea
-        if (task.status === 'completed' && task.completionDetails?.description) {
-          description += ` (${task.completionDetails.description})`;
-        } else if (task.progress && task.progress.length > 0) {
-          const todaysProgress = task.progress.filter(entry => {
-            const entryDate = entry.date instanceof Timestamp 
-              ? entry.date.toDate() 
-              : entry.date instanceof Date
-                ? entry.date
-                : new Date(entry.date);
+        // Agregar detalles solo para la primera tarea para reducir peso
+        if (index === 0) {
+          if (task.status === 'completed' && task.completionDetails?.description) {
+            description += ` (${task.completionDetails.description})`;
+          } else if (task.progress && task.progress.length > 0) {
+            const todaysProgress = task.progress.filter(entry => {
+              const entryDate = entry.date instanceof Timestamp 
+                ? entry.date.toDate() 
+                : entry.date instanceof Date
+                  ? entry.date
+                  : new Date(entry.date);
+              
+              return entryDate.toDateString() === selectedDate.toDateString();
+            });
             
-            return entryDate.toDateString() === selectedDate.toDateString();
-          });
-          
-          if (todaysProgress.length > 0) {
-            description += ` (${todaysProgress[0].description})`;
+            if (todaysProgress.length > 0) {
+              description += ` (${todaysProgress[0].description})`;
+            }
           }
         }
       });
+
+      // Agregar elipsis si hay más tareas
+      if (allActivityTasks.length > 3) {
+        description += ` y ${allActivityTasks.length - 3} actividad(es) más`;
+      }
 
       setTrainingHours({
         description,
@@ -259,20 +298,6 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
     // En lugar de mostrar todas las tareas a la vez, mostraremos solo la tarea actual
     setVisibleTasks([allActivityTasks[currentTaskIndex]]);
   }, [allActivityTasks, currentTaskIndex]);
-
-  // Navegar a la tarea anterior
-  const goToPreviousTask = () => {
-    if (currentTaskIndex > 0) {
-      setCurrentTaskIndex(currentTaskIndex - 1);
-    }
-  };
-
-  // Navegar a la siguiente tarea
-  const goToNextTask = () => {
-    if (currentTaskIndex < allActivityTasks.length - 1) {
-      setCurrentTaskIndex(currentTaskIndex + 1);
-    }
-  };
 
   return (
     <div className="bg-gray-800 rounded-lg p-3 sm:p-4 shadow-md border border-gray-700">
@@ -630,4 +655,4 @@ export const WorkTimeTracker: React.FC<WorkTimeTrackerProps> = ({
       </div>
     </div>
   );
-}; 
+}); 
