@@ -137,6 +137,7 @@ function App() {
     useCustomDate: false,
     customDate: new Date().toISOString().split('T')[0]
   });
+  const [selectedTaskForContextMenu, setSelectedTaskForContextMenu] = useState<string | null>(null);
   const [availableTools, setAvailableTools] = useState([
     'Forma (.fmb)', 'Package (.pks)', 'Package Body (.pkb)', 'Trigger (.trg)', 
     'Procedure (.prc)', 'Script (ALTER)', 'Script (UPDATE)', 'Script (INSERT)', 
@@ -856,52 +857,72 @@ function App() {
                 <div className="space-y-1 sm:space-y-2">
                   {allTasks.filter(task => task.status === 'in-progress').slice(0, 5).map((task) => {
                     const requirement = requirements.find(req => req.id === task.requirementId);
+                    const isSelected = selectedTaskForContextMenu === task.id;
                     
                     return (
-                      <div
-                        key={task.id}
-                        className="p-3 rounded-lg bg-gray-750 hover:bg-gray-700 border-l-4 border-yellow-500"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-600 text-white`}>
-                              {requirement?.tipo || 'REQ'}
-                            </span>
-                            <div className="font-medium text-sm sm:text-base text-yellow-300">{task.description}</div>
+                      <div key={task.id} className="relative">
+                        <div
+                          className={`p-3 rounded-lg bg-gray-750 hover:bg-gray-700 border-l-4 border-yellow-500 cursor-pointer transition-all duration-150 ${isSelected ? 'bg-gray-700 ring-1 ring-yellow-400' : ''}`}
+                          onClick={() => setSelectedTaskForContextMenu(isSelected ? null : (task.id || null))}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-600 text-white`}>
+                                {requirement?.tipo || 'REQ'}
+                              </span>
+                              <div className="font-medium text-sm sm:text-base text-yellow-300">{task.description}</div>
+                            </div>
                           </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (task.id) openProgressModal(task.id);
-                              }}
-                              className="p-1 rounded-full bg-yellow-600 hover:bg-yellow-500 transition"
-                              title="Añadir avance"
-                            >
-                              <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (task.id) openCompletionModal(task.id);
-                              }}
-                              className="p-1 rounded-full bg-green-600 hover:bg-green-500 transition"
-                              title="Completar tarea"
-                            >
-                              <CheckSquare className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            </button>
+                          
+                          <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-400 gap-1 sm:gap-3">
+                            <div>Requerimiento: {requirement?.name || 'Desconocido'}</div>
+                            <div className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1 text-gray-400" />
+                              {task.progress && task.progress.length > 0 
+                                ? `Último avance: ${new Date(task.progress[task.progress.length - 1].date).toLocaleDateString()}`
+                                : 'Sin avances registrados'}
+                            </div>
                           </div>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-400 gap-1 sm:gap-3">
-                          <div>Requerimiento: {requirement?.name || 'Desconocido'}</div>
-                          <div className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1 text-gray-400" />
-                            {task.progress && task.progress.length > 0 
-                              ? `Último avance: ${new Date(task.progress[task.progress.length - 1].date).toLocaleDateString()}`
-                              : 'Sin avances registrados'}
+                        {/* Menú contextual */}
+                        {isSelected && (
+                          <div className="absolute z-10 right-0 mt-1 bg-gray-800 rounded-lg shadow-lg border border-gray-700 w-48 py-1 overflow-hidden">
+                            <button 
+                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 flex items-center"
+                              onClick={() => {
+                                if (task.id) openProgressModal(task.id);
+                                setSelectedTaskForContextMenu(null);
+                              }}
+                            >
+                              <Plus className="w-4 h-4 mr-2 text-yellow-400" />
+                              Registrar avance
+                            </button>
+                            <button 
+                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 flex items-center"
+                              onClick={() => {
+                                if (task.id) openCompletionModal(task.id);
+                                setSelectedTaskForContextMenu(null);
+                              }}
+                            >
+                              <CheckSquare className="w-4 h-4 mr-2 text-green-400" />
+                              Completar tarea
+                            </button>
+                            <hr className="my-1 border-gray-700" />
+                            <button 
+                              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 flex items-center"
+                              onClick={() => {
+                                if (task.id && confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+                                  handleDeleteTask(task.id);
+                                }
+                                setSelectedTaskForContextMenu(null);
+                              }}
+                            >
+                              <TrashIcon className="w-4 h-4 mr-2 text-red-400" />
+                              Eliminar tarea
+                            </button>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
